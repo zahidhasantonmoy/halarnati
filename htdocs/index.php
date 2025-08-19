@@ -68,7 +68,7 @@ include 'header.php';
 ?>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-12 col-md-8 offset-md-2 col-lg-10 offset-lg-1">
         <?php if ($notification): ?>
             <div class="alert alert-info text-center"><?= $notification ?></div>
         <?php endif; ?>

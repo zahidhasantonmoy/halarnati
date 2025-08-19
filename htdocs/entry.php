@@ -44,7 +44,7 @@ include 'header.php';
 ?>
 
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-12 col-md-8 offset-md-2 col-lg-10 offset-lg-1">
         <div class="card mb-4">
             <div class="card-header">
                 <i class="fas fa-eye"></i> Viewing Entry: <?= htmlspecialchars($entry['title']) ?>
