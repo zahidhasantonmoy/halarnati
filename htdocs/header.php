@@ -1,3 +1,4 @@
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,7 +24,26 @@
                     <li class="nav-item">
                         <a class="nav-link" href="index.php"><i class="fas fa-home"></i> Home</a>
                     </li>
-                    <!-- Add more navigation links here if needed -->
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="user_panel.php"><i class="fas fa-user"></i> Welcome, <?= htmlspecialchars($_SESSION['username']) ?></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </li>
+                        <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
+                            <li class="nav-item">
+                                <a class="nav-link" href="admin_panel.php"><i class="fas fa-user-shield"></i> Admin Panel</a>
+                            </li>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="register.php"><i class="fas fa-user-plus"></i> Register</a>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

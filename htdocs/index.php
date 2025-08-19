@@ -1,4 +1,5 @@
 <?php
+session_start(); // Start session
 include 'config.php';
 
 $notification = "";
@@ -35,9 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
         move_uploaded_file($file['tmp_name'], $filePath);
     }
 
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL; // Get user_id from session
+
     // Insert entry into the database
-    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
-    $stmt->bind_param("sssssss", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug);
+    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
+    $stmt->bind_param("sssssssi", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug, $user_id);
     $stmt->execute();
     $stmt->close();
 
