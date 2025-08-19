@@ -2,25 +2,59 @@
 require_once 'db.php';
 require_once 'header.php';
 
+// Search functionality
+$searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
+$likeSearchQuery = '%' . $searchQuery . '%';
+
 // Pagination functionality
 $limit = 10; // Number of entries per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// Fetch the entries for the current page
-$result = $conn->query("SELECT * FROM entries WHERE is_visible = 1 ORDER BY created_at DESC LIMIT $limit OFFSET $offset");
-$entries = $result->fetch_all(MYSQLI_ASSOC);
+// Base queries
+$sql = "SELECT * FROM entries WHERE is_visible = 1";
+$countSql = "SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1";
 
-// Get total number of entries
-$totalResult = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1");
-$totalEntries = $totalResult->fetch_assoc()['total'];
+// Append search condition if a search query exists
+if (!empty($searchQuery)) {
+    $sql .= " AND (title LIKE ? OR text LIKE ?)";
+    $countSql .= " AND (title LIKE ? OR text LIKE ?)";
+}
+
+$sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+// Fetch total number of entries for pagination
+$countStmt = $conn->prepare($countSql);
+if (!empty($searchQuery)) {
+    $countStmt->bind_param("ss", $likeSearchQuery, $likeSearchQuery);
+}
+$countStmt->execute();
+$totalEntries = $countStmt->get_result()->fetch_assoc()['total'];
 $totalPages = ceil($totalEntries / $limit);
+$countStmt->close();
+
+// Fetch the entries for the current page
+$stmt = $conn->prepare($sql);
+if (!empty($searchQuery)) {
+    $stmt->bind_param("ssii", $likeSearchQuery, $likeSearchQuery, $limit, $offset);
+} else {
+    $stmt->bind_param("ii", $limit, $offset);
+}
+$stmt->execute();
+$entries = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 ?>
 
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">Latest Entries</h1>
+        <form action="index.php" method="get" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search for entries..." value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -75,7 +109,7 @@ $totalPages = ceil($totalEntries / $limit);
         <?php for ($i = 1; $i <= $totalPages; $i++):
             // Highlight the current page.
         ?>
-            <li class="page-item <?= $i == $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a></li>
+                        <li class="page-item <?= $i == $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?><?= !empty($searchQuery) ? '&search=' . urlencode($searchQuery) : '' ?>"><?= $i ?></a></li>
         <?php endfor; ?>
     </ul>
 </nav>
