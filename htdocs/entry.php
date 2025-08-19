@@ -50,6 +50,14 @@ include 'header.php';
                 <i class="fas fa-eye"></i> Viewing Entry: <?= htmlspecialchars($entry['title']) ?>
             </div>
             <div class="card-body">
+                <div class="alert alert-info mb-3">
+                    <p><strong>Instructions:</strong></p>
+                    <ul>
+                        <li>"Unlock Key" enter kore content unlock korun.</li>
+                        <li>Text copy korar jonno "Copy Content" button click korun.</li>
+                        <li>Download button diye file download korun.</li>
+                    </ul>
+                </div>
                 <p class="card-text entry-meta">
                     <small class="text-muted">Created: <?= $entry['created_at'] ?></small>
                     <span class="view-count"><i class="fas fa-eye"></i> Views: <?= $entry['view_count'] ?? 0 ?></span>

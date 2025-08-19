@@ -73,6 +73,23 @@ include 'header.php';
             <div class="alert alert-info text-center"><?= $notification ?></div>
         <?php endif; ?>
 
+        <h1 class="text-center mb-4">Z྇@྇h྇i྇d྇ ྇C྇r྇e྇a྇t྇i྇o྇n྇</h1>
+
+        <!-- Instructions Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Instructions
+            </div>
+            <div class="card-body">
+                <p style="color: #007bff; font-weight: bold;">নির্দেশনা:</p>
+                <ul>
+                    <li>"Choose File" e click kore apnar file select korun.</li>
+                    <li>Title, text, ar file diye upload korun.</li>
+                    <li>Search bar diye jinish khujte parben.</li>
+                </ul>
+            </div>
+        </div>
+
         <div class="card mb-4">
             <div class="card-header">
                 <i class="fas fa-plus-circle"></i> Create New Entry
@@ -129,7 +146,7 @@ include 'header.php';
             <div class="card-body">
                 <form action="" method="get">
                     <div class="input-group">
-                        <input type="text" name="search_query" class="form-control" placeholder="Search by title or content..." value="<?= htmlspecialchars($_GET['search_query'] ?? '') ?>">
+                        <input type="text" name="search_query" class="form-control" placeholder="Search entries" value="<?= htmlspecialchars($_GET['search_query'] ?? '') ?>">
                         <button type="submit" class="btn btn-info"><i class="fas fa-search"></i> Search</button>
                     </div>
                 </form>
