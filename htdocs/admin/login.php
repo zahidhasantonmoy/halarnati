@@ -9,16 +9,15 @@ if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = htmlspecialchars($_POST['username']);
-    // IMPORTANT: Using SHA256 to match the existing password hash.
-    // It is highly recommended to upgrade to password_hash() and password_verify().
-    $password = hash('sha256', $_POST['password']);
+    $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ? AND password = ?");
-    $stmt->bind_param("ss", $username, $password);
+    $stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ?");
+    $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
-    if ($result->num_rows > 0) {
+    if ($user && password_verify($password, $user['password'])) {
         $_SESSION['admin_logged_in'] = true;
         header("Location: admin_panel.php");
         exit;
