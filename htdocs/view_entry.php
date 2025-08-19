@@ -71,9 +71,7 @@ require_once 'header.php';
                         <hr>
                         <h5><i class="fas fa-paperclip"></i> Attached File</h5>
                         <p><?= htmlspecialchars(basename($entry['file_path'])) ?></p>
-                        <a href="../<?= htmlspecialchars($entry['file_path']) ?>" class="btn btn-success" download>
-                            <i class="fas fa-download"></i> Download File
-                        </a>
+                                                <a href="download.php?id=<?= $entry['id'] ?>" class="btn btn-success">
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
