@@ -67,6 +67,7 @@ require_once '../header.php';
                                 <td><?= $entry['download_count'] ?? 0 ?></td>
                                 <td>
                                     <a href="../view_entry.php?id=<?= $entry['id'] ?>" class="btn btn-info btn-sm" target="_blank" title="View"><i class="fas fa-eye"></i></a>
+                                    <a href="edit_entry.php?id=<?= $entry['id'] ?>" class="btn btn-primary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
                                     <a href="toggle_visibility.php?id=<?= $entry['id'] ?>" class="btn btn-warning btn-sm" title="Toggle Visibility"><i class="fas fa-exchange-alt"></i></a>
                                     <a href="delete_entry.php?id=<?= $entry['id'] ?>" class="btn btn-danger btn-sm" title="Delete" onclick="return confirm('Are you sure you want to delete this entry permanently?');"><i class="fas fa-trash"></i></a>
                                 </td>
