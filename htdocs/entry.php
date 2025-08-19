@@ -1,20 +1,26 @@
 <?php
 include 'config.php';
 
-// Get entry ID from URL
+// Get entry ID or slug from URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
+$slug = isset($_GET['slug']) ? htmlspecialchars($_GET['slug']) : null;
 
-if (!$id) {
-    die("Invalid entry ID.");
+$entry = null;
+if ($id) {
+    $stmt = $conn->prepare("SELECT * FROM entries WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $entry = $result->fetch_assoc();
+    $stmt->close();
+} elseif ($slug) {
+    $stmt = $conn->prepare("SELECT * FROM entries WHERE slug = ?");
+    $stmt->bind_param("s", $slug);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $entry = $result->fetch_assoc();
+    $stmt->close();
 }
-
-// Fetch entry from the database
-$stmt = $conn->prepare("SELECT * FROM entries WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$result = $stmt->get_result();
-$entry = $result->fetch_assoc();
-$stmt->close();
 
 if (!$entry) {
     die("Entry not found.");

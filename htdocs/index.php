@@ -7,9 +7,20 @@ $notification = "";
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $title = htmlspecialchars($_POST['title']);
     $text = htmlspecialchars($_POST['text']);
-    $entry_type = htmlspecialchars($_POST['entry_type']);
-    $language = ($entry_type === 'code') ? htmlspecialchars($_POST['language']) : '';
+    $language = htmlspecialchars($_POST['language'] ?? ''); // Language is always submitted
+    $entry_type = 'text'; // Default to text
+
+    if (!empty($_FILES['file']['name'])) {
+        $entry_type = 'file';
+    } elseif (!empty($language)) { // If a language is selected, assume it's code
+        $entry_type = 'code';
+    }
+
     $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
+    $customSlug = htmlspecialchars($_POST['custom_slug'] ?? '');
+    // Basic slug validation/sanitization (more robust validation would be needed for production)
+    $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
+
     $file = $_FILES['file'];
 
     $filePath = null;
@@ -25,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     }
 
     // Insert entry into the database
-    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, NOW(), 0)");
-    $stmt->bind_param("ssssss", $title, $text, $entry_type, $language, $filePath, $lockKey);
+    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
+    $stmt->bind_param("sssssss", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug);
     $stmt->execute();
     $stmt->close();
 
@@ -112,15 +123,8 @@ include 'header.php';
                         <label for="title" class="form-label">Title</label>
                         <input type="text" id="title" name="title" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="entry_type" class="form-label">Entry Type</label>
-                        <select id="entry_type" name="entry_type" class="form-select" onchange="toggleFileType()">
-                            <option value="text">Text</option>
-                            <option value="code">Code</option>
-                            <option value="file">File</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="language_field" style="display: none;">
+                    
+                    <div class="mb-3" id="language_field">
                         <label for="language" class="form-label">Language (for Code)</label>
                         <select id="language" name="language" class="form-select">
                             <option value="php">PHP</option>
@@ -146,9 +150,14 @@ include 'header.php';
                         <label for="lock_key" class="form-label">Password (Optional)</label>
                         <input type="text" id="lock_key" name="lock_key" class="form-control" placeholder="Set a password to lock">
                     </div>
-                    <button type="submit" name="submit_entry" class="btn btn-primary w-100"><i class="fas fa-upload"></i> Submit Entry</button>
+                    <button type="submit" name="submit_entry" class="btn btn-primary w-100"><i class="fas fa-paste"></i> Paste</button>
                 </form>
             </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="custom_slug" class="form-label">Custom Link (Optional)</label>
+            <input type="text" id="custom_slug" name="custom_slug" class="form-control" placeholder="e.g., my-awesome-paste">
         </div>
 
         <div class="card mb-4">
@@ -216,7 +225,7 @@ include 'header.php';
                             <textarea id="entry-text-<?= $entry['id'] ?>" style="position: absolute; left: -9999px;" readonly><?= htmlspecialchars($entry['text']) ?></textarea>
                         <?php endif; ?>
 
-                        <a href="entry.php?id=<?= $entry['id'] ?>" class="btn btn-primary btn-sm mt-2">
+                        <a href="entry.php?<?= $entry['slug'] ? 'slug=' . htmlspecialchars($entry['slug']) : 'id=' . $entry['id'] ?>" class="btn btn-primary btn-sm mt-2">
                             <i class="fas fa-eye"></i> View Details
                         </a>
                     </div>
@@ -262,20 +271,6 @@ include 'header.php';
 </div> <!-- Closing div for main-wrapper -->
 
 <script>
-    function toggleFileType() {
-        const entryType = document.getElementById('entry_type').value;
-        const languageField = document.getElementById('language_field');
-
-        if (entryType === 'code') {
-            languageField.style.display = 'block';
-        } else {
-            languageField.style.display = 'none';
-        }
-    }
-
-    // Initial call to set correct display on page load
-    document.addEventListener('DOMContentLoaded', toggleFileType);
-
     // Update total views in footer
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-views').innerText = '<?= $totalViews ?>';
