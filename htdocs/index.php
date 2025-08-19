@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $title = htmlspecialchars($_POST['title']);
     $text = htmlspecialchars($_POST['text']);
     $entry_type = htmlspecialchars($_POST['entry_type']);
-    $language = ($entry_type === 'code') ? htmlspecialchars($_POST['language']) : NULL;
+    $language = ($entry_type === 'code') ? htmlspecialchars($_POST['language']) : '';
     $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
     $file = $_FILES['file'];
 
