@@ -1,4 +1,48 @@
 <?php
+// Database connection
+$host = 'sql203.infinityfree.com';
+$user = 'if0_37868453';
+$pass = 'Yho7V4gkz6bP1';
+$db = 'if0_37868453_halarnati';
+$port = 3306;
+
+$conn = new mysqli($host, $user, $pass, $db, $port);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
+    $title = htmlspecialchars($_POST['title']);
+    $text = htmlspecialchars($_POST['text']);
+    $file = $_FILES['file'];
+    $lockKey = !empty($_POST['lock_key']) ? htmlspecialchars($_POST['lock_key']) : null;
+
+    $filePath = null;
+
+    // Handle file upload
+    if ($file['name']) {
+        $uploadsDir = 'uploads/';
+        if (!is_dir($uploadsDir)) {
+            mkdir($uploadsDir, 0777, true);
+        }
+        $filePath = $uploadsDir . basename($file['name']);
+        move_uploaded_file($file['tmp_name'], $filePath);
+    }
+
+    // Insert entry into the database
+    $stmt = $conn->prepare("INSERT INTO entries (title, text, file_path, lock_key, created_at) VALUES (?, ?, ?, ?, NOW())");
+    $stmt->bind_param("ssss", $title, $text, $filePath, $lockKey);
+    $stmt->execute();
+    $newEntryId = $stmt->insert_id;
+    $stmt->close();
+
+    // Redirect to the new entry's page
+    header("Location: view_entry.php?id=" . $newEntryId . "&status=success");
+    exit();
+}
+
 require_once 'header.php';
 ?>
 
@@ -9,7 +53,7 @@ require_once 'header.php';
                 <h3><i class="fas fa-plus-circle"></i> Add a New Entry</h3>
             </div>
             <div class="card-body">
-                <form action="add_entry_handler.php" method="post" enctype="multipart/form-data">
+                <form action="entry.php" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
                         <input type="text" id="title" name="title" class="form-control" required>
