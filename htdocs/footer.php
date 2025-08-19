@@ -1,4 +1,3 @@
-    </div>
     <footer class="footer mt-auto py-3 bg-dark text-white">
         <div class="container text-center">
             <span class="text-muted">&copy; <?= date("Y") ?> Halarnati | All rights reserved.</span>

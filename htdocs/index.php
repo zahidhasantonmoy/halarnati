@@ -67,8 +67,20 @@ $totalViews = $totalViewsResult->fetch_assoc()['total_views'] ?? 0;
 include 'header.php';
 ?>
 
-<div class="row">
-    <div class="col-12 col-lg-8">
+<div class="main-wrapper"><div class="row g-0">
+            <!-- Left Sidebar -->
+        <div class="col-12 col-lg-2 d-none d-lg-block sidebar-left">
+            <div class="p-3">
+                <h5>Navigation</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent border-0"><a href="index.php" class="text-decoration-none text-white"><i class="fas fa-home me-2"></i> Home</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="#" class="text-decoration-none text-white"><i class="fas fa-plus-circle me-2"></i> Add New</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="#" class="text-decoration-none text-white"><i class="fas fa-search me-2"></i> Search</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8 main-content-area">
+            <div class="container py-4">
         <?php if ($notification): ?>
             <div class="alert alert-info text-center"><?= $notification ?></div>
         <?php endif; ?>
@@ -223,26 +235,31 @@ include 'header.php';
                 <?php endfor; ?>
             </ul>
         </nav>
-    </div>
+    </div> <!-- Closing div for container py-4 -->
+        </div> <!-- Closing div for main-content-area -->
 
-    <div class="col-12 col-lg-4 mt-4 mt-lg-0">
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-tags"></i> Categories
-            </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Programming</a></li>
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Documents</a></li>
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Images</a></li>
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Videos</a></li>
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Other Files</a></li>
-                    <li class="list-group-item"><a href="#" class="text-decoration-none">Empty Category (Link)</a></li>
-                </ul>
+    <!-- Right Sidebar -->
+        <div class="col-12 col-lg-2 d-none d-lg-block sidebar-right">
+            <div class="p-3">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-tags"></i> Categories
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Programming</a></li>
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Documents</a></li>
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Images</a></li>
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Videos</a></li>
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Other Files</a></li>
+                            <li class="list-group-item"><a href="#" class="text-decoration-none">Empty Category (Link)</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+    </div> <!-- Closing div for row g-0 -->
+</div> <!-- Closing div for main-wrapper -->
 
 <script>
     function toggleFileType() {

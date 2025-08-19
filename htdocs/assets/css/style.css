@@ -24,10 +24,44 @@ body {
     transform: translateY(-2px);
 }
 
-.container {
+/* Main Layout */
+.main-wrapper {
     flex: 1;
-    padding-top: 20px;
-    padding-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content-area {
+    background-color: #ffffff; /* White background for main content */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    min-height: calc(100vh - 56px - 60px); /* Adjust for navbar and footer height */
+}
+
+.sidebar-left,
+.sidebar-right {
+    background-color: #546E7A; /* Medium Blue Grey for sidebars */
+    color: #ECEFF1;
+    padding: 15px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    min-height: calc(100vh - 56px - 60px); /* Adjust for navbar and footer height */
+    overflow-y: auto; /* Enable scrolling for long content */
+}
+
+.sidebar-left .list-group-item,
+.sidebar-right .list-group-item {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-left .list-group-item a,
+.sidebar-right .list-group-item a {
+    color: #ECEFF1;
+    transition: color 0.3s ease;
+}
+
+.sidebar-left .list-group-item a:hover,
+.sidebar-right .list-group-item a:hover {
+    color: #B0BEC5;
 }
 
 .footer {
