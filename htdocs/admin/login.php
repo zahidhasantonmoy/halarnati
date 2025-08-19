@@ -1,47 +1,61 @@
-<?php
-session_start();
-$host = 'sql203.infinityfree.com';
-$user = 'if0_37868453';
-$pass = 'Yho7V4gkz6bP1';
-$db = 'if0_37868453_halarnati';
-
-$conn = new mysqli($host, $user, $pass, $db);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = htmlspecialchars($_POST['username']);
-    $password = hash('sha256', $_POST['password']);
-
-    $stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ? AND password = ?");
-    $stmt->bind_param("ss", $username, $password);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $_SESSION['admin_logged_in'] = true;
-        header("Location: admin_panel.php");
-    } else {
-        $error = "Invalid username or password.";
-    }
-}
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
-</head>
-<body>
-    <h1>Admin Login</h1>
-    <form method="POST">
-        <label>Username:</label>
-        <input type="text" name="username" required>
-        <label>Password:</label>
-        <input type="password" name="password" required>
-        <button type="submit">Login</button>
-    </form>
-    <?php if (isset($error)): ?>
-        <p style="color: red;"><?= $error ?></p>
-    <?php endif; ?>
-</body>
-</html>
+<?php
+session_start();
+require_once '../db.php'; // Use the centralized db connection
+
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+    header("Location: admin_panel.php");
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = htmlspecialchars($_POST['username']);
+    // IMPORTANT: Using SHA256 to match the existing password hash.
+    // It is highly recommended to upgrade to password_hash() and password_verify().
+    $password = hash('sha256', $_POST['password']);
+
+    $stmt = $conn->prepare("SELECT * FROM admin_users WHERE username = ? AND password = ?");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $_SESSION['admin_logged_in'] = true;
+        header("Location: admin_panel.php");
+        exit;
+    } else {
+        $error = "Invalid username or password.";
+    }
+}
+
+require_once '../header.php'; // Use the main site header
+?>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-4 col-md-6">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3><i class="fas fa-user-shield"></i> Admin Login</h3>
+            </div>
+            <div class="card-body">
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger"><?= $error ?></div>
+                <?php endif; ?>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" name="username" id="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" name="password" id="password" class="form-control" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require_once '../footer.php'; ?>
