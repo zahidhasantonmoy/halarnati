@@ -68,7 +68,7 @@ include 'header.php';
 ?>
 
 <div class="row">
-    <div class="col-12 col-md-8 offset-md-2 col-lg-10 offset-lg-1">
+    <div class="col-12 col-lg-8">
         <?php if ($notification): ?>
             <div class="alert alert-info text-center"><?= $notification ?></div>
         <?php endif; ?>
@@ -81,7 +81,7 @@ include 'header.php';
                 <i class="fas fa-info-circle"></i> Instructions
             </div>
             <div class="card-body">
-                <p style="color: #007bff; font-weight: bold;">নির্দেশনা:</p>
+                <p style="color: #607D8B; font-weight: bold;">নির্দেশনা:</p>
                 <ul>
                     <li>"Choose File" e click kore apnar file select korun.</li>
                     <li>Title, text, ar file diye upload korun.</li>
@@ -122,13 +122,13 @@ include 'header.php';
                             <option value="">Other</option>
                         </select>
                     </div>
-                    <div class="mb-3" id="file_upload_field" style="display: none;">
+                    <div class="mb-3" id="file_upload_field">
                         <label for="file" class="form-label">Upload File</label>
                         <input type="file" id="file" name="file" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label for="text" class="form-label">Content (Text or Code)</label>
-                        <textarea id="text" name="text" rows="8" class="form-control" required></textarea>
+                        <textarea id="text" name="text" rows="8" class="form-control"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="lock_key" class="form-label">Password (Optional)</label>
@@ -224,23 +224,35 @@ include 'header.php';
             </ul>
         </nav>
     </div>
+
+    <div class="col-12 col-lg-4 mt-4 mt-lg-0">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-tags"></i> Categories
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Programming</a></li>
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Documents</a></li>
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Images</a></li>
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Videos</a></li>
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Other Files</a></li>
+                    <li class="list-group-item"><a href="#" class="text-decoration-none">Empty Category (Link)</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     function toggleFileType() {
         const entryType = document.getElementById('entry_type').value;
         const languageField = document.getElementById('language_field');
-        const fileUploadField = document.getElementById('file_upload_field');
 
         if (entryType === 'code') {
             languageField.style.display = 'block';
-            fileUploadField.style.display = 'none';
-        } else if (entryType === 'file') {
-            languageField.style.display = 'none';
-            fileUploadField.style.display = 'block';
         } else {
             languageField.style.display = 'none';
-            fileUploadField.style.display = 'none';
         }
     }
 

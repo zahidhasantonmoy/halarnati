@@ -1,26 +1,26 @@
 body {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #e0f7fa, #e8f5e9); /* Lighter, more vibrant gradient */
+    background: linear-gradient(135deg, #ECEFF1, #CFD8DC); /* Soft Blue Grey gradient */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    color: #333;
+    color: #37474F; /* Dark Blue Grey for text */
 }
 
 .navbar {
-    background-color: #263238; /* Darker blue-grey for navbar */
+    background-color: #455A64; /* Darker Blue Grey for navbar */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
 }
 
 .navbar-brand,
 .nav-link {
-    color: #e0f2f7 !important; /* Lighter text */
+    color: #ECEFF1 !important; /* Lighter text */
     transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .navbar-brand:hover,
 .nav-link:hover {
-    color: #80deea !important; /* Cyan accent */
+    color: #B0BEC5 !important; /* Lighter Blue Grey accent */
     transform: translateY(-2px);
 }
 
@@ -31,8 +31,8 @@ body {
 }
 
 .footer {
-    background-color: #263238; /* Darker blue-grey for footer */
-    color: #e0f2f7;
+    background-color: #455A64; /* Darker Blue Grey for footer */
+    color: #ECEFF1;
     box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.25);
 }
 
@@ -52,7 +52,7 @@ body {
 }
 
 .card-header {
-    background: linear-gradient(45deg, #42a5f5, #1976d2); /* Brighter blue gradient */
+    background: linear-gradient(45deg, #607D8B, #455A64); /* Blue Grey gradient */
     color: white;
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
@@ -65,17 +65,17 @@ body {
 
 .form-control {
     border-radius: 10px; /* More rounded */
-    border: 1px solid #b0bec5;
+    border: 1px solid #B0BEC5;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .form-control:focus {
-    border-color: #42a5f5;
-    box-shadow: 0 0 0 0.25rem rgba(66, 165, 245, 0.25);
+    border-color: #607D8B;
+    box-shadow: 0 0 0 0.25rem rgba(96, 125, 139, 0.25);
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #66bb6a, #388e3c); /* Vibrant green gradient */
+    background: linear-gradient(45deg, #8BC34A, #689F38); /* Light Green gradient */
     border: none;
     border-radius: 12px; /* More rounded */
     font-weight: bold;
@@ -85,12 +85,12 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
-    background: linear-gradient(45deg, #81c784, #4caf50);
+    box-shadow: 0 8px 20px rgba(139, 195, 74, 0.4);
+    background: linear-gradient(45deg, #9CCC65, #7CB342);
 }
 
 .btn-info {
-    background: linear-gradient(45deg, #ab47bc, #7b1fa2); /* Deeper purple gradient */
+    background: linear-gradient(45deg, #9C27B0, #7B1FA2); /* Purple gradient */
     border: none;
     border-radius: 12px;
     font-weight: bold;
@@ -100,8 +100,8 @@ body {
 
 .btn-info:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(171, 71, 188, 0.4);
-    background: linear-gradient(45deg, #ce93d8, #9c27b0);
+    box-shadow: 0 8px 20px rgba(156, 39, 176, 0.4);
+    background: linear-gradient(45deg, #BA68C8, #8E24AA);
 }
 
 /* Entry Listing */
@@ -121,20 +121,20 @@ body {
 .entry-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #37474f; /* Darker blue-grey */
+    color: #37474F; /* Dark Blue Grey */
 }
 
 .entry-meta {
     font-size: 0.95rem;
-    color: #78909c; /* Lighter grey */
+    color: #78909C; /* Lighter Blue Grey */
 }
 
 .entry-content {
     margin-top: 18px;
     padding: 18px;
-    background-color: #eceff1; /* Slightly darker background for content */
+    background-color: #F5F5F5; /* Light Grey background for content */
     border-radius: 15px;
-    border: 1px solid #cfd8dc;
+    border: 1px solid #E0E0E0;
 }
 
 /* Code Specific Styling */
@@ -152,7 +152,7 @@ pre[class*="language-"] {
 /* View Counter */
 .view-count {
     font-size: 1rem;
-    color: #546e7a; /* Medium blue-grey */
+    color: #546E7A; /* Medium Blue Grey */
     font-weight: 600;
     display: inline-flex;
     align-items: center;
@@ -161,7 +161,7 @@ pre[class*="language-"] {
 
 .view-count i {
     margin-right: 8px;
-    color: #ffb300; /* Amber accent */
+    color: #FFB300; /* Amber accent */
     font-size: 1.1rem;
 }
 
