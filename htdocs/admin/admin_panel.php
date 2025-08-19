@@ -5,7 +5,58 @@ if (!isset($_SESSION['admin_logged_in'])) {
     exit;
 }
 
-require_once '../db.php';
+// Database connection
+$host = 'sql203.infinityfree.com';
+$user = 'if0_37868453';
+$pass = 'Yho7V4gkz6bP1';
+$db = 'if0_37868453_halarnati';
+$port = 3306;
+$conn = new mysqli($host, $user, $pass, $db, $port);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Handle POST actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Handle Delete Entry
+    if (isset($_POST['delete_entry'])) {
+        $entryId = (int)$_POST['entry_id'];
+        $stmt = $conn->prepare("SELECT file_path FROM entries WHERE id = ?");
+        $stmt->bind_param("i", $entryId);
+        $stmt->execute();
+        $filePath = $stmt->get_result()->fetch_assoc()['file_path'];
+        $stmt->close();
+
+        if ($filePath && file_exists('../' . $filePath)) {
+            unlink('../' . $filePath);
+        }
+
+        $deleteStmt = $conn->prepare("DELETE FROM entries WHERE id = ?");
+        $deleteStmt->bind_param("i", $entryId);
+        $deleteStmt->execute();
+        $deleteStmt->close();
+        header("Location: admin_panel.php?action=deleted");
+        exit;
+    }
+
+    // Handle Visibility Toggle
+    if (isset($_POST['toggle_visibility'])) {
+        $entryId = (int)$_POST['entry_id'];
+        $stmt = $conn->prepare("SELECT is_visible FROM entries WHERE id = ?");
+        $stmt->bind_param("i", $entryId);
+        $stmt->execute();
+        $currentVisibility = $stmt->get_result()->fetch_assoc()['is_visible'];
+        $stmt->close();
+
+        $newVisibility = $currentVisibility ? 0 : 1;
+        $updateStmt = $conn->prepare("UPDATE entries SET is_visible = ? WHERE id = ?");
+        $updateStmt->bind_param("ii", $newVisibility, $entryId);
+        $updateStmt->execute();
+        $updateStmt->close();
+        header("Location: admin_panel.php?action=toggled");
+        exit;
+    }
+}
 
 // Fetch dashboard stats
 $totalEntries = $conn->query("SELECT COUNT(*) AS total FROM entries")->fetch_assoc()['total'];
@@ -36,27 +87,17 @@ require_once '../header.php';
                 </div>
             </div>
 
-            <!-- Stats Cards -->
             <div class="row">
-                <div class="col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-body"><h5 class="card-title"><i class="fas fa-archive"></i> Total Entries</h5><p class="card-text fs-4">$totalEntries</p></div></div></div>
-                <div class="col-md-3 mb-3"><div class="card text-white bg-success"><div class="card-body"><h5 class="card-title"><i class="fas fa-eye"></i> Visible Entries</h5><p class="card-text fs-4">$totalVisible</p></div></div></div>
-                <div class="col-md-3 mb-3"><div class="card text-white bg-warning"><div class="card-body"><h5 class="card-title"><i class="fas fa-eye-slash"></i> Hidden Entries</h5><p class="card-text fs-4">$totalHidden</p></div></div></div>
-                <div class="col-md-3 mb-3"><div class="card text-white bg-info"><div class="card-body"><h5 class="card-title"><i class="fas fa-download"></i> Total Downloads</h5><p class="card-text fs-4">$totalDownloads ?? 0</p></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-white bg-primary"><div class="card-body"><h5 class="card-title"><i class="fas fa-archive"></i> Total Entries</h5><p class="card-text fs-4"><?= $totalEntries ?></p></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-white bg-success"><div class="card-body"><h5 class="card-title"><i class="fas fa-eye"></i> Visible Entries</h5><p class="card-text fs-4"><?= $totalVisible ?></p></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-white bg-warning"><div class="card-body"><h5 class="card-title"><i class="fas fa-eye-slash"></i> Hidden Entries</h5><p class="card-text fs-4"><?= $totalHidden ?></p></div></div></div>
+                <div class="col-md-3 mb-3"><div class="card text-white bg-info"><div class="card-body"><h5 class="card-title"><i class="fas fa-download"></i> Total Downloads</h5><p class="card-text fs-4"><?= $totalDownloads ?? 0 ?></p></div></div></div>
             </div>
 
             <h2 class="mt-4">Manage Entries</h2>
             <div class="table-responsive">
                 <table class="table table-striped table-sm">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Created At</th>
-                            <th>Status</th>
-                            <th>Downloads</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>ID</th><th>Title</th><th>Created At</th><th>Status</th><th>Downloads</th><th>Actions</th></tr></thead>
                     <tbody>
                         <?php foreach ($entries as $entry): ?>
                             <tr>
@@ -65,11 +106,17 @@ require_once '../header.php';
                                 <td><?= $entry['created_at'] ?></td>
                                 <td><?= $entry['is_visible'] ? '<span class="badge bg-success">Visible</span>' : '<span class="badge bg-warning">Hidden</span>' ?></td>
                                 <td><?= $entry['download_count'] ?? 0 ?></td>
-                                <td>
-                                    <a href="../view_entry.php?id=<?= $entry['id'] ?>" class="btn btn-info btn-sm" target="_blank" title="View"><i class="fas fa-eye"></i></a>
-                                    <a href="edit_entry.php?id=<?= $entry['id'] ?>" class="btn btn-primary btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
-                                    <a href="toggle_visibility.php?id=<?= $entry['id'] ?>" class="btn btn-warning btn-sm" title="Toggle Visibility"><i class="fas fa-exchange-alt"></i></a>
-                                    <a href="delete_entry.php?id=<?= $entry['id'] ?>" class="btn btn-danger btn-sm" title="Delete" onclick="return confirm('Are you sure you want to delete this entry permanently?');"><i class="fas fa-trash"></i></a>
+                                <td class="d-flex">
+                                    <a href="../view_entry.php?id=<?= $entry['id'] ?>" class="btn btn-info btn-sm me-1" target="_blank" title="View"><i class="fas fa-eye"></i></a>
+                                    <a href="edit_entry.php?id=<?= $entry['id'] ?>" class="btn btn-primary btn-sm me-1" title="Edit"><i class="fas fa-edit"></i></a>
+                                    <form method="post" class="me-1">
+                                        <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
+                                        <button type="submit" name="toggle_visibility" class="btn btn-warning btn-sm" title="Toggle Visibility"><i class="fas fa-exchange-alt"></i></button>
+                                    </form>
+                                    <form method="post" onsubmit="return confirm('Are you sure you want to delete this entry permanently?');">
+                                        <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
+                                        <button type="submit" name="delete_entry" class="btn btn-danger btn-sm" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -77,17 +124,13 @@ require_once '../header.php';
                 </table>
             </div>
 
-            <!-- Pagination -->
             <?php if ($totalPages > 1): ?>
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center">
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <li class="page-item <?= $i == $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a></li>
-                    <?php endfor; ?>
-                </ul>
-            </nav>
+            <nav><ul class="pagination justify-content-center">
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <li class="page-item <?= $i == $page ? 'active' : '' ?>"><a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a></li>
+                <?php endfor; ?>
+            </ul></nav>
             <?php endif; ?>
-
         </main>
     </div>
 </div>

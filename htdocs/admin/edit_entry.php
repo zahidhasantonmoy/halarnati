@@ -5,9 +5,56 @@ if (!isset($_SESSION['admin_logged_in'])) {
     exit;
 }
 
-require_once '../db.php';
+// Database connection
+$host = 'sql203.infinityfree.com';
+$user = 'if0_37868453';
+$pass = 'Yho7V4gkz6bP1';
+$db = 'if0_37868453_halarnati';
+$port = 3306;
+$conn = new mysqli($host, $user, $pass, $db, $port);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
-// Check if ID is provided
+// Handle form submission for editing
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_edit'])) {
+    $entryId = (int)$_POST['entry_id'];
+    $title = htmlspecialchars($_POST['title']);
+    $text = htmlspecialchars($_POST['text']);
+    $lockKey = !empty($_POST['lock_key']) ? htmlspecialchars($_POST['lock_key']) : null;
+    $file = $_FILES['file'];
+
+    if ($file['name']) {
+        $stmt = $conn->prepare("SELECT file_path FROM entries WHERE id = ?");
+        $stmt->bind_param("i", $entryId);
+        $stmt->execute();
+        $oldFilePath = $stmt->get_result()->fetch_assoc()['file_path'];
+        $stmt->close();
+
+        if ($oldFilePath && file_exists('../' . $oldFilePath)) {
+            unlink('../' . $oldFilePath);
+        }
+
+        $uploadsDir = '../uploads/';
+        $newFilePath = $uploadsDir . basename($file['name']);
+        move_uploaded_file($file['tmp_name'], $newFilePath);
+        $dbFilePath = 'uploads/' . basename($file['name']);
+
+        $updateStmt = $conn->prepare("UPDATE entries SET title = ?, text = ?, file_path = ?, lock_key = ? WHERE id = ?");
+        $updateStmt->bind_param("ssssi", $title, $text, $dbFilePath, $lockKey, $entryId);
+    } else {
+        $updateStmt = $conn->prepare("UPDATE entries SET title = ?, text = ?, lock_key = ? WHERE id = ?");
+        $updateStmt->bind_param("sssi", $title, $text, $lockKey, $entryId);
+    }
+
+    $updateStmt->execute();
+    $updateStmt->close();
+
+    header("Location: admin_panel.php?action=edited");
+    exit();
+}
+
+// Check if ID is provided for GET request
 if (!isset($_GET['id'])) {
     header("Location: admin_panel.php");
     exit;
@@ -37,7 +84,7 @@ require_once '../header.php';
                     <h3><i class="fas fa-edit"></i> Edit Entry</h3>
                 </div>
                 <div class="card-body">
-                    <form action="edit_entry_handler.php" method="post" enctype="multipart/form-data">
+                    <form action="edit_entry.php?id=<?= $entry['id'] ?>" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
                         <div class="mb-3">
                             <label for="title" class="form-label">Title</label>
