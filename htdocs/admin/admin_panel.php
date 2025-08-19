@@ -66,8 +66,9 @@ require_once '../header.php';
                                 <td><?= $entry['is_visible'] ? '<span class="badge bg-success">Visible</span>' : '<span class="badge bg-warning">Hidden</span>' ?></td>
                                 <td><?= $entry['download_count'] ?? 0 ?></td>
                                 <td>
-                                    <a href="../view_entry.php?id=<?= $entry['id'] ?>" class="btn btn-info btn-sm" target="_blank"><i class="fas fa-eye"></i></a>
-                                    <!-- Add Edit, Toggle, and Delete buttons here that link to handlers -->
+                                    <a href="../view_entry.php?id=<?= $entry['id'] ?>" class="btn btn-info btn-sm" target="_blank" title="View"><i class="fas fa-eye"></i></a>
+                                    <a href="toggle_visibility.php?id=<?= $entry['id'] ?>" class="btn btn-warning btn-sm" title="Toggle Visibility"><i class="fas fa-exchange-alt"></i></a>
+                                    <a href="delete_entry.php?id=<?= $entry['id'] ?>" class="btn btn-danger btn-sm" title="Delete" onclick="return confirm('Are you sure you want to delete this entry permanently?');"><i class="fas fa-trash"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
