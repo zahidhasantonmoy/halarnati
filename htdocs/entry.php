@@ -85,7 +85,7 @@ include 'header.php';
                                     <pre><code class="language-<?= htmlspecialchars($entry['language'] ?? 'markup') ?>"><?= htmlspecialchars($entry['text']) ?></code></pre>
                                 <?php elseif ($entry['type'] === 'file'): ?>
                                     <p><strong>Attached File:</strong> <?= htmlspecialchars(basename($entry['file_path'] ?? '')) ?></p>
-                                    <a href="uploads/<?= htmlspecialchars(basename($entry['file_path'] ?? '')) ?>" class="btn btn-secondary" download>
+                                    <a href="download.php?file=<?= urlencode(basename($entry['file_path'] ?? '')) ?>" class="btn btn-secondary">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
                                 <?php else: // Default to text ?>
