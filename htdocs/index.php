@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $stmt->close();
 
     $notification = "Entry successfully added!";
+    log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $conn->insert_id . ')');
 }
 
 // Handle search functionality

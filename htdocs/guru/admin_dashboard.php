@@ -19,8 +19,6 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin']) {
 // Notifications
 $notification = "";
 
-/*
-// Handle Delete Entry
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entry'])) {
     $entryId = (int)$_POST['entry_id'];
 
@@ -42,11 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entry'])) {
     $stmt->close();
 
     $notification = "Entry and associated file successfully deleted.";
+    log_activity($_SESSION['user_id'], 'Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted.');
 }
-*/
 
-/*
-// Handle Edit Entry (Simplified for now, full edit will be via edit_entry.php)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) {
     $entryId = (int)$_POST['entry_id'];
     $title = htmlspecialchars($_POST['title']);
@@ -78,11 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) 
     $stmt->close();
 
     $notification = "Entry successfully updated.";
+    log_activity($_SESSION['user_id'], 'Entry Updated', 'Entry ID: ' . $entryId . ' updated. Title: ' . $title);
 }
-*/
 
-/*
-// Handle Visibility Toggle
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_visibility'])) {
     $entryId = (int)$_POST['entry_id'];
     $visibility = (int)$_POST['visibility']; // 0 = hidden, 1 = visible
@@ -92,25 +86,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_visibility']))
     $stmt->close();
 
     $notification = $visibility ? "Entry made visible." : "Entry hidden.";
+    log_activity($_SESSION['user_id'], 'Entry Visibility Toggled', 'Entry ID: ' . $entryId . ' visibility set to: ' . ($visibility ? 'Visible' : 'Hidden'));
 }
-*/
 
-/*
-// Handle Export Entries (Adapt to new schema)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
     $result = $conn->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
     $filename = "entries_" . date('Ymd') . ".csv";
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename=\"'. $filename . '"');
+    header('Content-Disposition: attachment; filename="'. $filename . '"');
     $output = fopen('php://output', 'w');
     fputcsv($output, ['ID', 'Title', 'Text', 'Type', 'Language', 'File Path', 'Lock Key', 'Slug', 'User ID', 'Created At', 'View Count', 'Visibility']);
     while ($row = $result->fetch_assoc()) {
         fputcsv($output, $row);
     }
     fclose($output);
+    log_activity($_SESSION['user_id'], 'Entries Exported', 'All entries exported to CSV.');
     exit;
 }
-*/
 
 // Handle Import Entries (Needs significant re-work for new schema, skipping for now)
 // if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_entries'])) {
