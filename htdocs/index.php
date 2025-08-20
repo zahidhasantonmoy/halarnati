@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $title = htmlspecialchars($_POST['title']);
     $text = htmlspecialchars($_POST['text']);
     $language = htmlspecialchars($_POST['language'] ?? '');
-    $category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+    $category_id = (int)$_POST['category_id'];
     $entry_type = 'text'; // Default to text
 
     if (!empty($_FILES['file']['name'])) {
@@ -141,11 +141,14 @@ include 'header.php';
 
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
-                        <select id="category" name="category_id" class="form-select">
-                            <option value="">Select Category</option>
-                            <?php foreach ($categories as $category): ?>
-                                <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
-                            <?php endforeach; ?>
+                        <select id="category" name="category_id" class="form-select" required>
+                            <?php if (empty($categories)): ?>
+                                <option value="" disabled>No categories available</option>
+                            <?php else: ?>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
                     
