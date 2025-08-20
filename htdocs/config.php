@@ -17,6 +17,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+if (!function_exists('log_activity')) {
 /**
  * Logs user activity to the database.
  *
@@ -52,7 +53,9 @@ function log_activity($user_id, $action, $details = null, $ip_address = null) {
     $stmt->execute();
     $stmt->close();
 }
+}
 
+if (!function_exists('get_setting')) {
 /**
  * Gets a setting value from the database.
  *
@@ -71,7 +74,9 @@ function get_setting($key, $default = null) {
     }
     return $default;
 }
+}
 
+if (!function_exists('set_setting')) {
 /**
  * Sets a setting value in the database.
  * Inserts if the key does not exist, updates if it does.
@@ -101,5 +106,6 @@ function set_setting($key, $value) {
     $success = $stmt->execute();
     $stmt->close();
     return $success;
+}
 }
 ?>
