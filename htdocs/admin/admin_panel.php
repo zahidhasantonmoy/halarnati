@@ -1,4 +1,8 @@
 <?php
+/**
+ * Admin dashboard.
+ * Displays stats and allows managing entries.
+ */
 session_start();
 include '../config.php'; // Include your database connection
 
@@ -107,7 +111,7 @@ $offset = ($page - 1) * $limit;
 
 // Search functionality
 $search = htmlspecialchars($_GET['search'] ?? '');
-$query = "SELECT id, title, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries WHERE title LIKE ? OR text LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+$query = "SELECT e.id, e.title, e.type, e.language, e.file_path, e.lock_key, e.slug, e.user_id, e.created_at, e.view_count, e.is_visible, u.username FROM entries e LEFT JOIN users u ON e.user_id = u.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($query);
 $likeSearch = '%' . $search . '%';
 $stmt->bind_param("ssii", $likeSearch, $likeSearch, $limit, $offset);
@@ -121,10 +125,24 @@ $totalEntries = $conn->query("SELECT COUNT(*) AS total FROM entries")->fetch_ass
 $totalPages = ceil($totalEntries / $limit);
 
 // Fetch dashboard stats
-$totalVisible = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1")->fetch_assoc()['total'];
-$totalHidden = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 0")->fetch_assoc()['total'];
-$totalViews = $conn->query("SELECT SUM(view_count) AS total FROM entries")->fetch_assoc()['total'];
-$totalUsers = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
+$totalEntriesResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
+$totalEntries = $totalEntriesResult ? $totalEntriesResult->fetch_assoc()['total'] : 0;
+
+$totalVisibleResult = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1");
+$totalVisible = $totalVisibleResult ? $totalVisibleResult->fetch_assoc()['total'] : 0;
+
+$totalHiddenResult = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 0");
+$totalHidden = $totalHiddenResult ? $totalHiddenResult->fetch_assoc()['total'] : 0;
+
+$totalViewsResult = $conn->query("SELECT SUM(view_count) AS total FROM entries");
+$totalViews = $totalViewsResult ? $totalViewsResult->fetch_assoc()['total'] : 0;
+
+$totalUsersResult = $conn->query("SELECT COUNT(*) AS total FROM users");
+$totalUsers = $totalUsersResult ? $totalUsersResult->fetch_assoc()['total'] : 0;
+
+if (!$totalEntriesResult || !$totalVisibleResult || !$totalHiddenResult || !$totalViewsResult || !$totalUsersResult) {
+    $notification = "Error fetching dashboard stats: " . $conn->error;
+}
 
 include '../header.php'; // Use new header
 ?>
@@ -223,7 +241,7 @@ include '../header.php'; // Use new header
                                 <td><?= $entry['id'] ?></td>
                                 <td><?= htmlspecialchars($entry['title']) ?></td>
                                 <td><?= htmlspecialchars($entry['type']) ?></td>
-                                <td><?= $entry['user_id'] ? (function($conn, $user_id){ $stmt = $conn->prepare("SELECT username FROM users WHERE id = ?"); $stmt->bind_param("i", $user_id); $stmt->execute(); $res = $stmt->get_result()->fetch_assoc(); $stmt->close(); return htmlspecialchars($res['username'] ?? 'Anonymous'); })($conn, $entry['user_id']) : 'Anonymous' ?></td>
+                                <td><?= htmlspecialchars($entry['username'] ?? 'Anonymous') ?></td>
                                 <td><?= $entry['is_visible'] ? 'Visible' : 'Hidden' ?></td>
                                 <td><?= $entry['view_count'] ?? 0 ?></td>
                                 <td>

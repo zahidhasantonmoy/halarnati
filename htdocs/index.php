@@ -1,14 +1,19 @@
 <?php
+/**
+ * The main page of the application.
+ * Handles entry creation, displays the latest entries, and includes search functionality.
+ */
 session_start(); // Start session
 include 'config.php';
 
 $notification = "";
 
-// Handle form submission
+// Handle form submission for creating a new entry
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $title = htmlspecialchars($_POST['title']);
     $text = htmlspecialchars($_POST['text']);
-    $language = htmlspecialchars($_POST['language'] ?? ''); // Language is always submitted
+    $language = htmlspecialchars($_POST['language'] ?? '');
+    $category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
     $entry_type = 'text'; // Default to text
 
     if (!empty($_FILES['file']['name'])) {
@@ -19,14 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
 
     $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
     $customSlug = htmlspecialchars($_POST['custom_slug'] ?? '');
-    // Basic slug validation/sanitization (more robust validation would be needed for production)
     $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
 
     $file = $_FILES['file'];
-
     $filePath = null;
 
-    // Handle file upload if type is 'file'
+    // Handle file upload
     if ($entry_type === 'file' && $file['name']) {
         $uploadsDir = 'uploads/';
         if (!is_dir($uploadsDir)) {
@@ -36,11 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
         move_uploaded_file($file['tmp_name'], $filePath);
     }
 
-    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL; // Get user_id from session
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
     // Insert entry into the database
-    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
-    $stmt->bind_param("sssssssi", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug, $user_id);
+    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
+    $stmt->bind_param("sssssssii", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug, $user_id, $category_id);
     $stmt->execute();
     $stmt->close();
 
@@ -51,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
 $searchResults = [];
 if (isset($_GET['search_query'])) {
     $searchQuery = htmlspecialchars($_GET['search_query']);
-    $stmt = $conn->prepare("SELECT * FROM entries WHERE title LIKE ? OR text LIKE ? ORDER BY created_at DESC");
+    $stmt = $conn->prepare("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC");
     $likeQuery = '%' . $searchQuery . '%';
     $stmt->bind_param("ss", $likeQuery, $likeQuery);
     $stmt->execute();
@@ -66,8 +69,12 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
 // Fetch the entries for the current page
-$result = $conn->query("SELECT * FROM entries ORDER BY created_at DESC LIMIT $limit OFFSET $offset");
+$stmt = $conn->prepare("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id ORDER BY e.created_at DESC LIMIT ? OFFSET ?");
+$stmt->bind_param("ii", $limit, $offset);
+$stmt->execute();
+$result = $stmt->get_result();
 $entries = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 // Get total number of entries
 $totalResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
@@ -77,6 +84,11 @@ $totalPages = ceil($totalEntries / $limit);
 // Get total view count for footer
 $totalViewsResult = $conn->query("SELECT SUM(view_count) AS total_views FROM entries");
 $totalViews = $totalViewsResult->fetch_assoc()['total_views'] ?? 0;
+
+// Fetch all categories
+$categories_query = "SELECT id, name, slug FROM categories ORDER BY name ASC";
+$categories_result = $conn->query($categories_query);
+$categories = $categories_result->fetch_all(MYSQLI_ASSOC);
 
 include 'header.php';
 ?>
@@ -126,6 +138,16 @@ include 'header.php';
                         <label for="title" class="form-label">Title</label>
                         <input type="text" id="title" name="title" class="form-control" required>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" name="category_id" class="form-select">
+                            <option value="">Select Category</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     
                     <div class="mb-3" id="language_field">
                         <label for="language" class="form-label">Language (for Code)</label>
@@ -162,6 +184,12 @@ include 'header.php';
             <label for="custom_slug" class="form-label">Custom Link (Optional)</label>
             <input type="text" id="custom_slug" name="custom_slug" class="form-control" placeholder="e.g., my-awesome-paste">
         </div>
+        
+        <?php if (!isset($_SESSION['user_id'])): ?>
+            <div class="alert alert-info text-center mb-4">
+                Please <a href="login.php">login</a> or <a href="register.php">register</a> to get more features like editing and deleting your entries.
+            </div>
+        <?php endif; ?>
 
         <div class="card mb-4">
             <div class="card-header">
@@ -203,6 +231,9 @@ include 'header.php';
                         <p class="card-text entry-meta">
                             <small class="text-muted">Created: <?= $entry['created_at'] ?></small>
                             <span class="view-count"><i class="fas fa-eye"></i> Views: <?= $entry['view_count'] ?? 0 ?></span>
+                            <?php if (isset($entry['category_name']) && $entry['category_name']): ?>
+                                <span class="badge bg-secondary"><a href="category.php?slug=<?= $entry['category_slug'] ?>" class="text-white text-decoration-none"><?= htmlspecialchars($entry['category_name']) ?></a></span>
+                            <?php endif; ?>
                         </p>
 
                         <?php if ($entry['lock_key']): // Locked entry ?>
@@ -259,12 +290,9 @@ include 'header.php';
                     </div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Programming</a></li>
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Documents</a></li>
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Images</a></li>
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Videos</a></li>
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Other Files</a></li>
-                            <li class="list-group-item"><a href="#" class="text-decoration-none">Empty Category (Link)</a></li>
+                            <?php foreach ($categories as $category): ?>
+                                <li class="list-group-item"><a href="category.php?slug=<?= $category['slug'] ?>" class="text-decoration-none"><?= htmlspecialchars($category['name']) ?></a></li>
+                            <?php endforeach; ?>
                         </ul>
                     </div>
                 </div>
