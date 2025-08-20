@@ -85,7 +85,7 @@ include '../header.php'; // Use new header
                     <li class="list-group-item bg-transparent border-0"><a href="manage_users.php" class="text-decoration-none text-white"><i class="fas fa-users me-2"></i> Manage Users</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="manage_entries.php" class="text-decoration-none text-white"><i class="fas fa-list me-2"></i> Manage Entries</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="manage_categories.php" class="text-decoration-none text-white"><i class="fas fa-folder-open me-2"></i> Manage Categories</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="manage_categories.php" class="text-decoration-none text-white"><i class="fas fa-folder-open me-2"></i> Manage Categories</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="view_activity_logs.php" class="text-decoration-none text-white"><i class="fas fa-history me-2"></i> Activity Logs</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="../logout.php" class="text-decoration-none text-white"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                 </ul>
             </div>
@@ -164,7 +164,7 @@ include '../header.php'; // Use new header
             <div class="p-3">
                 <h5>Quick Links</h5>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item bg-transparent border-0"><a href="../index.php" class="text-decoration-none text-white">Go to Home</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/index.php" class="text-decoration-none text-white">Go to Home</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="../register.php" class="text-decoration-none text-white">Register New User</a></li>
                 </ul>
             </div>
