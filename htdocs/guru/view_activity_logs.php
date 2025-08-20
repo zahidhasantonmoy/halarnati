@@ -8,6 +8,25 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     exit;
 }
 
+// Pagination setup
+$limit = 20; // Number of logs per page
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $limit;
+
+// Fetch logs
+$logs_query = "SELECT ual.*, u.username FROM user_activity_logs ual LEFT JOIN users u ON ual.user_id = u.id ORDER BY ual.timestamp DESC LIMIT ? OFFSET ?";
+$stmt = $conn->prepare($logs_query);
+$stmt->bind_param("ii", $limit, $offset);
+$stmt->execute();
+$result = $stmt->get_result();
+$activity_logs = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Get total number of logs for pagination
+$total_logs_result = $conn->query("SELECT COUNT(*) AS total FROM user_activity_logs");
+$total_logs = $total_logs_result->fetch_assoc()['total'];
+$totalPages = ceil($total_logs / $limit);
+
 include '../header.php';
 ?>
 
@@ -32,8 +51,44 @@ include '../header.php';
         <div class="col-12 col-lg-8 main-content-area">
             <div class="container py-4">
                 <h1 class="text-center mb-4">User Activity Logs</h1>
-                <p>This page will display user activity logs.</p>
-                <!-- Activity logs table will go here -->
+                <?php if (empty($activity_logs)): ?>
+                    <div class="alert alert-info text-center">No activity logs found.</div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($activity_logs as $log): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($log['timestamp']) ?></td>
+                                        <td><?= htmlspecialchars($log['username'] ?? 'N/A') ?></td>
+                                        <td><?= htmlspecialchars($log['action']) ?></td>
+                                        <td><?= htmlspecialchars($log['details'] ?? 'N/A') ?></td>
+                                        <td><?= htmlspecialchars($log['ip_address'] ?? 'N/A') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
             </div>
         </div>
 
