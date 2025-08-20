@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_user']) || isset
             $stmt->bind_param($params, ...$bind_values);
             if ($stmt->execute()) {
                 $notification = "User updated successfully.";
+                log_activity($_SESSION['user_id'], 'User Updated', 'User profile updated for: ' . $username . ' (ID: ' . $user_id . ')');
             } else {
                 $notification = "Error updating user: " . $stmt->error;
             }
@@ -57,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_user']) || isset
                 $stmt->bind_param("sssi", $username, $email, $hashed_password, $is_admin);
                 if ($stmt->execute()) {
                     $notification = "User added successfully.";
+                    log_activity($_SESSION['user_id'], 'User Added', 'New user created: ' . $username);
                 } else {
                     $notification = "Error adding user: " . $stmt->error;
                 }
@@ -69,6 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_user']) || isset
 // Handle Delete User
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $user_id_to_delete = (int)$_POST['user_id'];
+
+    // Fetch username before deleting for logging purposes
+    $stmt_fetch_username = $conn->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt_fetch_username->bind_param("i", $user_id_to_delete);
+    $stmt_fetch_username->execute();
+    $result_username = $stmt_fetch_username->get_result()->fetch_assoc();
+    $username_to_delete = $result_username['username'] ?? 'Unknown User';
+    $stmt_fetch_username->close();
 
     // Prevent admin from deleting themselves
     if ($user_id_to_delete === $_SESSION['user_id']) {
@@ -85,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
         $stmt->bind_param("i", $user_id_to_delete);
         if ($stmt->execute()) {
             $notification = "User deleted successfully.";
+            log_activity($_SESSION['user_id'], 'User Deleted', 'User deleted: ' . $username_to_delete . ' (ID: ' . $user_id_to_delete . ')');
         } else {
             $notification = "Error deleting user: " . $stmt->error;
         }
