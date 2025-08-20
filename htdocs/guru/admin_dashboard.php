@@ -104,6 +104,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
     exit;
 }
 
+// Handle Bulk Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['selected_entries'])) {
+    $selected_entries = $_POST['selected_entries']; // Array of entry IDs
+
+    if (isset($_POST['bulk_delete'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            // Fetch file path before deleting
+            $stmt = $conn->prepare("SELECT file_path FROM entries WHERE id = ?");
+            $stmt->bind_param("i", $entryId);
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_assoc();
+            $filePath = $result['file_path'];
+            $stmt->close();
+
+            if ($filePath && file_exists('../' . $filePath)) {
+                unlink('../' . $filePath);
+            }
+
+            $stmt = $conn->prepare("DELETE FROM entries WHERE id = ?");
+            $stmt->bind_param("i", $entryId);
+            $stmt->execute();
+            $stmt->close();
+            log_activity($_SESSION['user_id'], 'Bulk Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted via bulk action.');
+        }
+        $notification = "Selected entries deleted successfully.";
+    } elseif (isset($_POST['bulk_hide'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            $stmt = $conn->prepare("UPDATE entries SET is_visible = 0 WHERE id = ?");
+            $stmt->bind_param("i", $entryId);
+            $stmt->execute();
+            $stmt->close();
+            log_activity($_SESSION['user_id'], 'Bulk Entry Hidden', 'Entry ID: ' . $entryId . ' hidden via bulk action.');
+        }
+        $notification = "Selected entries hidden successfully.";
+    } elseif (isset($_POST['bulk_show'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            $stmt = $conn->prepare("UPDATE entries SET is_visible = 1 WHERE id = ?");
+            $stmt->bind_param("i", $entryId);
+            $stmt->execute();
+            $stmt->close();
+            log_activity($_SESSION['user_id'], 'Bulk Entry Shown', 'Entry ID: ' . $entryId . ' shown via bulk action.');
+        }
+        $notification = "Selected entries shown successfully.";
+    }
+}
+
 // Handle Import Entries (Needs significant re-work for new schema, skipping for now)
 // if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_entries'])) {
 //     $notification = "Import functionality needs to be updated for new schema.";
@@ -237,67 +286,80 @@ include '../header.php'; // Use new header
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-primary">
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Type</th>
-                            <th>User</th>
-                            <th>Visibility</th>
-                            <th>Views</th>
-                            <th>Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($entries as $entry):
-                            // Ensure values are strings before passing to htmlspecialchars
-                            $entryLockKey = (string)($entry['lock_key'] ?? '');
-                            $entryLanguage = (string)($entry['language'] ?? '');
-                            $entrySlug = (string)($entry['slug'] ?? '');
-
-                            // Check for potential issues with data before displaying
-                            $entryTitle = htmlspecialchars($entry['title']);
-                            $entryType = htmlspecialchars($entry['type']);
-                            $entryUser = htmlspecialchars($entry['username'] ?? 'Anonymous');
-                            $entryVisibility = $entry['is_visible'] ? 'Visible' : 'Hidden';
-                            $entryViewCount = $entry['view_count'] ?? 0;
-                        ?>
+                    <form method="POST" action="admin_dashboard.php">
+                        <div class="mb-3">
+                            <button type="submit" name="bulk_delete" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete selected entries?');"><i class="fas fa-trash"></i> Delete Selected</button>
+                            <button type="submit" name="bulk_hide" class="btn btn-warning btn-sm"><i class="fas fa-eye-slash"></i> Hide Selected</button>
+                            <button type="submit" name="bulk_show" class="btn btn-success btn-sm"><i class="fas fa-eye"></i> Show Selected</button>
+                        </div>
+                        <table class="table table-hover">
+                            <thead class="table-primary">
                             <tr>
-                                <td><?= $entry['id'] ?></td>
-                                <td><?= $entryTitle ?></td>
-                                <td><?= $entryType ?></td>
-                                <td><?= $entryUser ?></td>
-                                <td><?= $entryVisibility ?></td>
-                                <td><?= $entryViewCount ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
-                                        <input type="hidden" name="visibility" value="<?= $entry['is_visible'] ? 0 : 1 ?>">
-                                        <button type="submit" name="toggle_visibility" class="btn btn-warning btn-sm">
-                                            <?= $entry['is_visible'] ? '<i class="fas fa-eye-slash"></i> Hide' : '<i class="fas fa-eye"></i> Show' ?>
-                                        </button>
-                                    </form>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
-                                        <button type="submit" name="delete_entry" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this entry?');">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                    <button class="btn btn-primary btn-sm edit-btn"
-                                            data-id="<?= $entry['id'] ?>"
-                                            data-title="<?= htmlspecialchars($entry['title']) ?>"
-                                            data-text="<?= htmlspecialchars($entry['text']) ?>"
-                                            data-lock="<?= htmlspecialchars($entryLockKey) ?>"
-                                            data-language="<?= htmlspecialchars($entryLanguage) ?>"
-                                            data-slug="<?= htmlspecialchars($entrySlug) ?>"
-                                            data-visible="<?= $entry['is_visible'] ?>"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editModal">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                </td>
+                                <th><input type="checkbox" id="selectAllEntries"></th>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>User</th>
+                                <th>Visibility</th>
+                                <th>Views</th>
+                                <th>Actions</th>
                             </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($entries as $entry):
+                                // Ensure values are strings before passing to htmlspecialchars
+                                $entryLockKey = (string)($entry['lock_key'] ?? '');
+                                $entryLanguage = (string)($entry['language'] ?? '');
+                                $entrySlug = (string)($entry['slug'] ?? '');
+
+                                // Check for potential issues with data before displaying
+                                $entryTitle = htmlspecialchars($entry['title']);
+                                $entryType = htmlspecialchars($entry['type']);
+                                $entryUser = htmlspecialchars($entry['username'] ?? 'Anonymous');
+                                $entryVisibility = $entry['is_visible'] ? 'Visible' : 'Hidden';
+                                $entryViewCount = $entry['view_count'] ?? 0;
+                            ?>
+                                <tr>
+                                    <td><input type="checkbox" name="selected_entries[]" value="<?= $entry['id'] ?>"></td>
+                                    <td><?= $entry['id'] ?></td>
+                                    <td><?= $entryTitle ?></td>
+                                    <td><?= $entryType ?></td>
+                                    <td><?= $entryUser ?></td>
+                                    <td><?= $entryVisibility ?></td>
+                                    <td><?= $entryViewCount ?></td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
+                                            <input type="hidden" name="visibility" value="<?= $entry['is_visible'] ? 0 : 1 ?>">
+                                            <button type="submit" name="toggle_visibility" class="btn btn-warning btn-sm">
+                                                <?= $entry['is_visible'] ? '<i class="fas fa-eye-slash"></i> Hide' : '<i class="fas fa-eye"></i> Show' ?>
+                                            </button>
+                                        </form>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
+                                            <button type="submit" name="delete_entry" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this entry?');">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-primary btn-sm edit-btn"
+                                                data-id="<?= $entry['id'] ?>"
+                                                data-title="<?= htmlspecialchars($entry['title']) ?>"
+                                                data-text="<?= htmlspecialchars($entry['text']) ?>"
+                                                data-lock="<?= htmlspecialchars($entryLockKey) ?>"
+                                                data-language="<?= htmlspecialchars($entryLanguage) ?>"
+                                                data-slug="<?= htmlspecialchars($entrySlug) ?>"
+                                                data-visible="<?= $entry['is_visible'] ?>"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editModal">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -408,6 +470,19 @@ include '../header.php'; // Use new header
             document.getElementById('edit-language').value = language;
             document.getElementById('edit-slug').value = slug;
             document.getElementById('edit-visible').value = visible;
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('selectAllEntries');
+        const entryCheckboxes = document.querySelectorAll('input[name="selected_entries[]"]');
+
+        selectAllCheckbox.addEventListener('change', function() {
+            entryCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
         });
     });
 </script>
