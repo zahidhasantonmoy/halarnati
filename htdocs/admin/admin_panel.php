@@ -121,7 +121,8 @@ $entries = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // Total entry count for pagination
-$totalEntries = $conn->query("SELECT COUNT(*) AS total FROM entries")->fetch_assoc()['total'];
+$totalEntriesResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
+$totalEntries = $totalEntriesResult ? $totalEntriesResult->fetch_assoc()['total'] : 0;
 $totalPages = ceil($totalEntries / $limit);
 
 // Fetch dashboard stats
