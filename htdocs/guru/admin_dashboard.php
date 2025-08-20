@@ -259,6 +259,11 @@ include '../header.php'; // Use new header
                         </thead>
                         <tbody>
                         <?php foreach ($entries as $entry):
+                            // Ensure values are strings before passing to htmlspecialchars
+                            $entryLockKey = (string)($entry['lock_key'] ?? '');
+                            $entryLanguage = (string)($entry['language'] ?? '');
+                            $entrySlug = (string)($entry['slug'] ?? '');
+
                             // Check for potential issues with data before displaying
                             $entryTitle = htmlspecialchars($entry['title']);
                             $entryType = htmlspecialchars($entry['type']);
@@ -291,9 +296,9 @@ include '../header.php'; // Use new header
                                             data-id="<?= $entry['id'] ?>"
                                             data-title="<?= htmlspecialchars($entry['title']) ?>"
                                             data-text="<?= htmlspecialchars($entry['text']) ?>"
-                                            data-lock="<?= htmlspecialchars((string)($entry['lock_key'] ?? '')) ?>"
-                                            data-language="<?= htmlspecialchars((string)($entry['language'] ?? '')) ?>"
-                                            data-slug="<?= htmlspecialchars((string)($entry['slug'] ?? '')) ?>"
+                                            data-lock="<?= htmlspecialchars($entryLockKey) ?>"
+                                            data-language="<?= htmlspecialchars($entryLanguage) ?>"
+                                            data-slug="<?= htmlspecialchars($entrySlug) ?>"
                                             data-visible="<?= $entry['is_visible'] ?>"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal">
