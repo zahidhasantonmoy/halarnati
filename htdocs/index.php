@@ -24,7 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
 
     $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
     $customSlug = htmlspecialchars($_POST['custom_slug'] ?? '');
-    $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
+    if (empty($customSlug)) {
+        $customSlug = bin2hex(random_bytes(5)); // Generates a 10-character random hex string
+    } else {
+        $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
+    }
 
     $file = $_FILES['file'];
     $filePath = null;
