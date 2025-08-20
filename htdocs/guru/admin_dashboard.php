@@ -163,20 +163,107 @@ $limit = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
+// Filtering and Sorting parameters
+$filterType = htmlspecialchars($_GET['filter_type'] ?? '');
+$filterVisibility = isset($_GET['filter_visibility']) ? (int)$_GET['filter_visibility'] : '';
+$sortBy = htmlspecialchars($_GET['sort_by'] ?? 'created_at');
+$sortOrder = htmlspecialchars($_GET['sort_order'] ?? 'DESC');
+
+// Validate sort_by and sort_order to prevent SQL injection
+$allowedSortBy = ['created_at', 'title', 'view_count'];
+if (!in_array($sortBy, $allowedSortBy)) {
+    $sortBy = 'created_at';
+}
+$allowedSortOrder = ['ASC', 'DESC'];
+if (!in_array($sortOrder, $allowedSortOrder)) {
+    $sortOrder = 'DESC';
+}
+
 // Search functionality
 $search = htmlspecialchars($_GET['search'] ?? '');
-$query = "SELECT e.id, e.title, e.type, e.language, e.file_path, e.lock_key, e.slug, e.user_id, e.created_at, e.view_count, e.is_visible, u.username FROM entries e LEFT JOIN users u ON e.user_id = u.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC LIMIT ? OFFSET ?";
+
+// Build dynamic query
+$whereClauses = [];
+$params = [];
+$types = "";
+
+if (!empty($search)) {
+    $whereClauses[] = "(e.title LIKE ? OR e.text LIKE ?)";
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+    $types .= "ss";
+}
+
+if (!empty($filterType)) {
+    $whereClauses[] = "e.type = ?";
+    $params[] = $filterType;
+    $types .= "s";
+}
+
+if ($filterVisibility !== '') {
+    $whereClauses[] = "e.is_visible = ?";
+    $params[] = $filterVisibility;
+    $types .= "i";
+}
+
+$query = "SELECT e.id, e.title, e.type, e.language, e.file_path, e.lock_key, e.slug, e.user_id, e.created_at, e.view_count, e.is_visible, u.username FROM entries e LEFT JOIN users u ON e.user_id = u.id";
+
+if (!empty($whereClauses)) {
+    $query .= " WHERE " . implode(" AND ", $whereClauses);
+}
+
+$query .= " ORDER BY " . $sortBy . " " . $sortOrder . " LIMIT ? OFFSET ?";
+$params[] = $limit;
+$params[] = $offset;
+$types .= "ii";
+
 $stmt = $conn->prepare($query);
-$likeSearch = '%' . $search . '%';
-$stmt->bind_param("ssii", $likeSearch, $likeSearch, $limit, $offset);
+
+// Dynamically bind parameters
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
 $entries = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Total entry count for pagination
-$totalEntriesResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
-$totalEntries = $totalEntriesResult->fetch_assoc()['total'] ?? 0;
+// Total entry count for pagination (with filters)
+$countQuery = "SELECT COUNT(*) AS total FROM entries e";
+if (!empty($whereClauses)) {
+    $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
+}
+
+$countStmt = $conn->prepare($countQuery);
+
+// Dynamically bind parameters for count query
+$countParams = [];
+$countTypes = "";
+
+if (!empty($search)) {
+    $countParams[] = '%' . $search . '%';
+    $countParams[] = '%' . $search . '%';
+    $countTypes .= "ss";
+}
+
+if (!empty($filterType)) {
+    $countParams[] = $filterType;
+    $countTypes .= "s";
+}
+
+if ($filterVisibility !== '') {
+    $countParams[] = $filterVisibility;
+    $countTypes .= "i";
+}
+
+if (!empty($countParams)) {
+    $countStmt->bind_param($countTypes, ...$countParams);
+}
+
+$countStmt->execute();
+$totalEntriesResult = $countStmt->get_result()->fetch_assoc();
+$totalEntries = $totalEntriesResult['total'] ?? 0;
 $totalPages = ceil($totalEntries / $limit);
 
 // Fetch dashboard stats
@@ -285,6 +372,54 @@ include '../header.php'; // Use new header
                     </div>
                 </div>
 
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-filter"></i> Filter & Sort Entries
+                    </div>
+                    <div class="card-body">
+                        <form action="admin_dashboard.php" method="GET">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="filter_type" class="form-label">Type</label>
+                                    <select class="form-select" id="filter_type" name="filter_type">
+                                        <option value="">All</option>
+                                        <option value="text">Text</option>
+                                        <option value="code">Code</option>
+                                        <option value="file">File</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="filter_visibility" class="form-label">Visibility</label>
+                                    <select class="form-select" id="filter_visibility" name="filter_visibility">
+                                        <option value="">All</option>
+                                        <option value="1">Visible</option>
+                                        <option value="0">Hidden</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="sort_by" class="form-label">Sort By</label>
+                                    <select class="form-select" id="sort_by" name="sort_by">
+                                        <option value="created_at">Created At</option>
+                                        <option value="title">Title</option>
+                                        <option value="view_count">Views</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="sort_order" class="form-label">Order</label>
+                                    <select class="form-select" id="sort_order" name="sort_order">
+                                        <option value="DESC">Descending</option>
+                                        <option value="ASC">Ascending</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Apply Filters</button>
+                                    <a href="admin_dashboard.php" class="btn btn-secondary">Reset Filters</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <div class="table-responsive">
                     <form method="POST" action="admin_dashboard.php">
                         <div class="mb-3">
@@ -368,9 +503,26 @@ include '../header.php'; // Use new header
                     <ul class="pagination justify-content-center">
                         <?php for ($i = 1; $i <= $totalPages; $i++):
                             $pageClass = ($i === $page) ? 'active' : '';
+                            $paginationLink = '?page=' . $i;
+
+                            if (!empty($search)) {
+                                $paginationLink .= '&search=' . htmlspecialchars($search);
+                            }
+                            if (!empty($filterType)) {
+                                $paginationLink .= '&filter_type=' . htmlspecialchars($filterType);
+                            }
+                            if ($filterVisibility !== '') { // Check for empty string, not just empty()
+                                $paginationLink .= '&filter_visibility=' . htmlspecialchars($filterVisibility);
+                            }
+                            if ($sortBy !== 'created_at') { // Only add if not default
+                                $paginationLink .= '&sort_by=' . htmlspecialchars($sortBy);
+                            }
+                            if ($sortOrder !== 'DESC') { // Only add if not default
+                                $paginationLink .= '&sort_order=' . htmlspecialchars($sortOrder);
+                            }
                         ?>
                             <li class="page-item <?= $pageClass ?>">
-                                <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                                <a class="page-link" href="<?= $paginationLink ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; ?>
                     </ul>
