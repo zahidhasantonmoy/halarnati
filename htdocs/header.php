@@ -35,7 +35,7 @@
                         </li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="admin/admin_panel.php"><i class="fas fa-user-shield"></i> Admin Panel</a>
+                                <a class="nav-link" href="guru/admin_dashboard.php"><i class="fas fa-user-shield"></i> Admin Panel</a>
                             </li>
                         <?php endif; ?>
                     <?php else: ?>

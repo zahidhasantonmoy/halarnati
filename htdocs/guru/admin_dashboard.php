@@ -19,6 +19,7 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin']) {
 // Notifications
 $notification = "";
 
+/*
 // Handle Delete Entry
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entry'])) {
     $entryId = (int)$_POST['entry_id'];
@@ -42,7 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entry'])) {
 
     $notification = "Entry and associated file successfully deleted.";
 }
+*/
 
+/*
 // Handle Edit Entry (Simplified for now, full edit will be via edit_entry.php)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) {
     $entryId = (int)$_POST['entry_id'];
@@ -64,7 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) 
 
     if (!empty($current_file_path)) {
         $entry_type = 'file';
-    } elseif (!empty($language)) {
+    }
+    elseif (!empty($language)) {
         $entry_type = 'code';
     }
 
@@ -75,7 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) 
 
     $notification = "Entry successfully updated.";
 }
+*/
 
+/*
 // Handle Visibility Toggle
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_visibility'])) {
     $entryId = (int)$_POST['entry_id'];
@@ -87,7 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_visibility']))
 
     $notification = $visibility ? "Entry made visible." : "Entry hidden.";
 }
+*/
 
+/*
 // Handle Export Entries (Adapt to new schema)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
     $result = $conn->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
@@ -102,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
     fclose($output);
     exit;
 }
+*/
 
 // Handle Import Entries (Needs significant re-work for new schema, skipping for now)
 // if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_entries'])) {
@@ -166,7 +175,7 @@ include '../header.php'; // Use new header
             <div class="p-3">
                 <h5>Admin Panel</h5>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item bg-transparent border-0"><a href="admin_panel.php" class="text-decoration-none text-white"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="admin_dashboard.php" class="text-decoration-none text-white"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="manage_users.php" class="text-decoration-none text-white"><i class="fas fa-users me-2"></i> Manage Users</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="manage_entries.php" class="text-decoration-none text-white"><i class="fas fa-list me-2"></i> Manage Entries</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="../logout.php" class="text-decoration-none text-white"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
@@ -248,14 +257,21 @@ include '../header.php'; // Use new header
                         </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($entries as $entry): ?>
+                        <?php foreach ($entries as $entry):
+                            // Check for potential issues with data before displaying
+                            $entryTitle = htmlspecialchars($entry['title']);
+                            $entryType = htmlspecialchars($entry['type']);
+                            $entryUser = htmlspecialchars($entry['username'] ?? 'Anonymous');
+                            $entryVisibility = $entry['is_visible'] ? 'Visible' : 'Hidden';
+                            $entryViewCount = $entry['view_count'] ?? 0;
+                        ?>
                             <tr>
                                 <td><?= $entry['id'] ?></td>
-                                <td><?= htmlspecialchars($entry['title']) ?></td>
-                                <td><?= htmlspecialchars($entry['type']) ?></td>
-                                <td><?= htmlspecialchars($entry['username'] ?? 'Anonymous') ?></td>
-                                <td><?= $entry['is_visible'] ? 'Visible' : 'Hidden' ?></td>
-                                <td><?= $entry['view_count'] ?? 0 ?></td>
+                                <td><?= $entryTitle ?></td>
+                                <td><?= $entryType ?></td>
+                                <td><?= $entryUser ?></td>
+                                <td><?= $entryVisibility ?></td>
+                                <td><?= $entryViewCount ?></td>
                                 <td>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
@@ -270,15 +286,15 @@ include '../header.php'; // Use new header
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
                                     </form>
-                                    <button class="btn btn-primary btn-sm edit-btn" 
-                                            data-id="<?= $entry['id'] ?>" 
-                                            data-title="<?= htmlspecialchars($entry['title']) ?>" 
-                                            data-text="<?= htmlspecialchars($entry['text']) ?>" 
-                                            data-lock="<?= htmlspecialchars($entry['lock_key'] ?? '') ?>" 
-                                            data-language="<?= htmlspecialchars($entry['language'] ?? '') ?>" 
-                                            data-slug="<?= htmlspecialchars($entry['slug'] ?? '') ?>" 
+                                    <button class="btn btn-primary btn-sm edit-btn"
+                                            data-id="<?= $entry['id'] ?>"
+                                            data-title="<?= htmlspecialchars($entry['title']) ?>"
+                                            data-text="<?= htmlspecialchars($entry['text']) ?>"
+                                            data-lock="<?= htmlspecialchars($entry['lock_key'] ?? '') ?>"
+                                            data-language="<?= htmlspecialchars($entry['language'] ?? '') ?>"
+                                            data-slug="<?= htmlspecialchars($entry['slug'] ?? '') ?>"
                                             data-visible="<?= $entry['is_visible'] ?>"
-                                            data-bs-toggle="modal" 
+                                            data-bs-toggle="modal"
                                             data-bs-target="#editModal">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
@@ -290,8 +306,10 @@ include '../header.php'; // Use new header
                 </div>
                 <nav>
                     <ul class="pagination justify-content-center">
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <li class="page-item <?= $i === $page ? 'active' : '' ">
+                        <?php for ($i = 1; $i <= $totalPages; $i++):
+                            $pageClass = ($i === $page) ? 'active' : '';
+                        ?>
+                            <li class="page-item <?= $pageClass ?>">
                                 <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; ?>

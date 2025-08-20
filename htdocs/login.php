@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Redirect to dashboard or home page
                 if ($is_admin) {
-                    header("Location: admin/admin_panel.php"); // Redirect to admin panel if admin
+                    header("Location: guru/admin_dashboard.php"); // Redirect to admin panel if admin
                 } else {
                     header("Location: index.php"); // Redirect to home page for regular users
                 }
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // If user is already logged in, redirect them
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['is_admin']) {
-        header("Location: admin/admin_panel.php");
+        header("Location: guru/admin_dashboard.php");
     } else {
         header("Location: index.php");
     }
