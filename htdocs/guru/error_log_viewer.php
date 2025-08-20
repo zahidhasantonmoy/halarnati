@@ -8,24 +8,30 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     exit;
 }
 
+// Define the path to the PHP error log file
+// This is a common location, but might vary based on server configuration.
+// You might need to adjust this path.
+$logFilePath = '../php_error.log'; // Assuming it's in the htdocs directory
+
+$logContent = [];
+$notification = "";
+
+if (file_exists($logFilePath) && is_readable($logFilePath)) {
+    $logContent = file($logFilePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $logContent = array_reverse($logContent); // Show latest entries first
+} else {
+    $notification = "Error log file not found or not readable at: " . htmlspecialchars($logFilePath);
+}
+
 // Pagination setup
-$limit = 20; // Number of logs per page
+$limit = 50; // Number of log entries per page
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $limit;
 
-// Fetch logs
-$logs_query = "SELECT ual.*, u.username FROM user_activity_logs ual LEFT JOIN users u ON ual.user_id = u.id ORDER BY ual.timestamp DESC LIMIT ? OFFSET ?";
-$stmt = $conn->prepare($logs_query);
-$stmt->bind_param("ii", $limit, $offset);
-$stmt->execute();
-$result = $stmt->get_result();
-$activity_logs = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$totalLogs = count($logContent);
+$totalPages = ceil($totalLogs / $limit);
 
-// Get total number of logs for pagination
-$total_logs_result = $conn->query("SELECT COUNT(*) AS total FROM user_activity_logs");
-$total_logs = $total_logs_result->fetch_assoc()['total'];
-$totalPages = ceil($total_logs / $limit);
+$pagedLogs = array_slice($logContent, $offset, $limit);
 
 include '../header.php';
 ?>
@@ -51,44 +57,36 @@ include '../header.php';
         <!-- Main Content Area -->
         <div class="col-12 col-lg-8 main-content-area">
             <div class="container py-4">
-                <h1 class="text-center mb-4">User Activity Logs</h1>
-                <?php if (empty($activity_logs)): ?>
-                    <div class="alert alert-info text-center">No activity logs found.</div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                    <th>IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($activity_logs as $log): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($log['timestamp']) ?></td>
-                                        <td><?= htmlspecialchars($log['username'] ?? 'N/A') ?></td>
-                                        <td><?= htmlspecialchars($log['action']) ?></td>
-                                        <td><?= htmlspecialchars($log['details'] ?? 'N/A') ?></td>
-                                        <td><?= htmlspecialchars($log['ip_address'] ?? 'N/A') ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <h1 class="text-center mb-4">PHP Error Log Viewer</h1>
+                <?php if ($notification): ?>
+                    <div class="alert alert-warning text-center"><?= $notification ?></div>
+                <?php endif; ?>
+
+                <?php if (!empty($pagedLogs)): ?>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            Recent Error Log Entries
+                        </div>
+                        <div class="card-body">
+                            <pre style="white-space: pre-wrap; word-wrap: break-word; max-height: 500px; overflow-y: scroll; background-color: #f8f9fa; padding: 15px; border-radius: 5px;"><?= htmlspecialchars(implode("\n", $pagedLogs)) ?></pre>
+                        </div>
                     </div>
 
                     <nav aria-label="Page navigation">
                         <ul class="pagination justify-content-center">
-                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                            <?php for ($i = 1; $i <= $totalPages; $i++):
+                                $isActive = ($i == $page) ? 'active' : '';
+                            ?>
+                                <li class="page-item <?= $isActive ?>">
                                     <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
                         </ul>
                     </nav>
+                <?php elseif (!$notification):
+                    // This case handles when the log file exists but is empty, or if there was no notification.
+                ?>
+                    <div class="alert alert-info text-center">No error logs found or log file is empty.</div>
                 <?php endif; ?>
             </div>
         </div>
