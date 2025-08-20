@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
     $result = $conn->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
     $filename = "entries_" . date('Ymd') . ".csv";
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Disposition: attachment; filename=\"'. $filename . '"');
     $output = fopen('php://output', 'w');
     fputcsv($output, ['ID', 'Title', 'Text', 'Type', 'Language', 'File Path', 'Lock Key', 'Slug', 'User ID', 'Created At', 'View Count', 'Visibility']);
     while ($row = $result->fetch_assoc()) {
@@ -122,28 +122,35 @@ $stmt->close();
 
 // Total entry count for pagination
 $totalEntriesResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
-$totalEntries = $totalEntriesResult ? $totalEntriesResult->fetch_assoc()['total'] : 0;
+$totalEntries = $totalEntriesResult->fetch_assoc()['total'] ?? 0;
 $totalPages = ceil($totalEntries / $limit);
 
 // Fetch dashboard stats
-$totalEntriesResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
-$totalEntries = $totalEntriesResult ? $totalEntriesResult->fetch_assoc()['total'] : 0;
+$stats = [];
+$queries = [
+    'totalEntries' => "SELECT COUNT(*) AS total FROM entries",
+    'totalVisible' => "SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1",
+    'totalHidden' => "SELECT COUNT(*) AS total FROM entries WHERE is_visible = 0",
+    'totalViews' => "SELECT SUM(view_count) AS total FROM entries",
+    'totalUsers' => "SELECT COUNT(*) AS total FROM users"
+];
 
-$totalVisibleResult = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1");
-$totalVisible = $totalVisibleResult ? $totalVisibleResult->fetch_assoc()['total'] : 0;
-
-$totalHiddenResult = $conn->query("SELECT COUNT(*) AS total FROM entries WHERE is_visible = 0");
-$totalHidden = $totalHiddenResult ? $totalHiddenResult->fetch_assoc()['total'] : 0;
-
-$totalViewsResult = $conn->query("SELECT SUM(view_count) AS total FROM entries");
-$totalViews = $totalViewsResult ? $totalViewsResult->fetch_assoc()['total'] : 0;
-
-$totalUsersResult = $conn->query("SELECT COUNT(*) AS total FROM users");
-$totalUsers = $totalUsersResult ? $totalUsersResult->fetch_assoc()['total'] : 0;
-
-if (!$totalEntriesResult || !$totalVisibleResult || !$totalHiddenResult || !$totalViewsResult || !$totalUsersResult) {
-    $notification = "Error fetching dashboard stats: " . $conn->error;
+foreach ($queries as $key => $query) {
+    $result = $conn->query($query);
+    if ($result) {
+        $stats[$key] = $result->fetch_assoc()['total'] ?? 0;
+    } else {
+        $stats[$key] = 0;
+        $notification = "Error fetching dashboard stats: " . $conn->error;
+    }
 }
+
+$totalEntries = $stats['totalEntries'];
+$totalVisible = $stats['totalVisible'];
+$totalHidden = $stats['totalHidden'];
+$totalViews = $stats['totalViews'];
+$totalUsers = $stats['totalUsers'];
+
 
 include '../header.php'; // Use new header
 ?>
@@ -175,31 +182,31 @@ include '../header.php'; // Use new header
                     <div class="stat col-md-3 text-center">
                         <div class="card">
                             <div class="card-header">Total Entries</div>
-                            <div class="card-body"><h3 class="card-title"><?= $totalEntries ?></h3></div>
+                            <div class="card-body"><h3 class="card-title"><?= $totalEntries ?? 0 ?></h3></div>
                         </div>
                     </div>
                     <div class="stat col-md-3 text-center">
                         <div class="card">
                             <div class="card-header">Visible Entries</div>
-                            <div class="card-body"><h3 class="card-title"><?= $totalVisible ?></h3></div>
+                            <div class="card-body"><h3 class="card-title"><?= $totalVisible ?? 0 ?></h3></div>
                         </div>
                     </div>
                     <div class="stat col-md-3 text-center">
                         <div class="card">
                             <div class="card-header">Hidden Entries</div>
-                            <div class="card-body"><h3 class="card-title"><?= $totalHidden ?></h3></div>
+                            <div class="card-body"><h3 class="card-title"><?= $totalHidden ?? 0 ?></h3></div>
                         </div>
                     </div>
                     <div class="stat col-md-3 text-center">
                         <div class="card">
                             <div class="card-header">Total Views</div>
-                            <div class="card-body"><h3 class="card-title"><?= $totalViews ?></h3></div>
+                            <div class="card-body"><h3 class="card-title"><?= $totalViews ?? 0 ?></h3></div>
                         </div>
                     </div>
                     <div class="stat col-md-3 text-center">
                         <div class="card">
                             <div class="card-header">Total Users</div>
-                            <div class="card-body"><h3 class="card-title"><?= $totalUsers ?></h3></div>
+                            <div class="card-body"><h3 class="card-title"><?= $totalUsers ?? 0 ?></h3></div>
                         </div>
                     </div>
                 </div>
@@ -210,7 +217,7 @@ include '../header.php'; // Use new header
                     <div class="card-body">
                         <form class="mb-3" method="GET">
                             <div class="input-group">
-                                <input type="text" name="search" class="form-control" placeholder="Search entries..." value="<?= $search ?>">
+                                <input type="text" name="search" class="form-control" placeholder="Search entries..." value="<?= $search ?? '' ?>">
                                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
                             </div>
                         </form>
