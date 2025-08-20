@@ -1,4 +1,7 @@
 <?php
+/**
+ * Handles user registration.
+ */
 include 'config.php'; // Include your database connection
 
 $notification = "";
@@ -32,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Insert new user
-            $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)");
             $stmt->bind_param("sss", $username, $email, $hashed_password);
 
             if ($stmt->execute()) {
@@ -89,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Register</button>
                             </form>
-                            <p class="mt-3 text-center">Already have an account? <a href="login.php">Login here</a></p>
+                            <p class="mt-3 text-center">Already have an account? <a href="login.php">Login here</a> | <a href="index.php">Go to Homepage</a></p>
                         </div>
                     </div>
                 </div>

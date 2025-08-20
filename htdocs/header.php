@@ -1,4 +1,6 @@
-<?php session_start(); ?>
+<?php if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+} ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,7 +35,7 @@
                         </li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
                             <li class="nav-item">
-                                <a class="nav-link" href="admin_panel.php"><i class="fas fa-user-shield"></i> Admin Panel</a>
+                                <a class="nav-link" href="admin/admin_panel.php"><i class="fas fa-user-shield"></i> Admin Panel</a>
                             </li>
                         <?php endif; ?>
                     <?php else: ?>

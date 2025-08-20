@@ -1,4 +1,7 @@
 <?php
+/**
+ * Handles user login.
+ */
 session_start(); // Start session for user login
 include 'config.php'; // Include your database connection
 
@@ -31,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Redirect to dashboard or home page
                 if ($is_admin) {
-                    header("Location: admin_panel.php"); // Redirect to admin panel if admin
+                    header("Location: admin/admin_panel.php"); // Redirect to admin panel if admin
                 } else {
                     header("Location: index.php"); // Redirect to home page for regular users
                 }
@@ -49,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // If user is already logged in, redirect them
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['is_admin']) {
-        header("Location: admin_panel.php");
+        header("Location: admin/admin_panel.php");
     } else {
         header("Location: index.php");
     }
@@ -89,7 +92,7 @@ if (isset($_SESSION['user_id'])) {
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Login</button>
                             </form>
-                            <p class="mt-3 text-center">Don't have an account? <a href="register.php">Register here</a></p>
+                            <p class="mt-3 text-center">Don't have an account? <a href="register.php">Register here</a> | <a href="index.php">Go to Homepage</a></p>
                         </div>
                     </div>
                 </div>

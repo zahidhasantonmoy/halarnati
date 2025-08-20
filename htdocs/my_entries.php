@@ -1,4 +1,8 @@
 <?php
+/**
+ * Displays the user's entries.
+ * Allows searching and pagination.
+ */
 session_start();
 include 'config.php';
 
@@ -49,6 +53,7 @@ include 'header.php';
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item bg-transparent border-0"><a href="user_panel.php" class="text-decoration-none text-white"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="my_entries.php" class="text-decoration-none text-white"><i class="fas fa-list me-2"></i> My Entries</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="my_drive.php" class="text-decoration-none text-white"><i class="fas fa-hdd me-2"></i> My Drive</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="profile.php" class="text-decoration-none text-white"><i class="fas fa-user-cog me-2"></i> Profile Settings</a></li>
                     <li class="list-group-item bg-transparent border-0"><a href="logout.php" class="text-decoration-none text-white"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                 </ul>

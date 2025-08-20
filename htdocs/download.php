@@ -1,7 +1,11 @@
 <?php
+/**
+ * Handles file downloads.
+ * Prevents directory traversal attacks.
+ */
 if (isset($_GET['file'])) {
     $fileName = urldecode($_GET['file']);
-    $filePath = 'uploads/' . $fileName;
+    $filePath = 'uploads/' . basename($fileName);
 
     if (file_exists($filePath)) {
         header('Content-Description: File Transfer');

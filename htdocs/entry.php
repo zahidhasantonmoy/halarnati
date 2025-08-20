@@ -1,4 +1,8 @@
 <?php
+/**
+ * Displays a single entry.
+ * Handles unlocking of password-protected entries.
+ */
 include 'config.php';
 
 // Get entry ID or slug from URL
