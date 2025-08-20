@@ -8,6 +8,27 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     exit;
 }
 
+$notification = "";
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
+    $site_title = htmlspecialchars($_POST['site_title']);
+    $site_description = htmlspecialchars($_POST['site_description']);
+
+    $success_title = set_setting('site_title', $site_title);
+    $success_description = set_setting('site_description', $site_description);
+
+    if ($success_title && $success_description) {
+        $notification = "Settings saved successfully!";
+    } else {
+        $notification = "Error saving settings.";
+    }
+}
+
+// Fetch current settings
+$current_site_title = get_setting('site_title', 'Halarnati'); // Default value
+$current_site_description = get_setting('site_description', 'A modern platform for sharing text, code, and files.'); // Default value
+
 include '../header.php';
 ?>
 
@@ -34,8 +55,28 @@ include '../header.php';
         <div class="col-12 col-lg-8 main-content-area">
             <div class="container py-4">
                 <h1 class="text-center mb-4">Application Settings</h1>
-                <p>This page will manage application settings.</p>
-                <!-- Settings form will go here -->
+                <?php if ($notification): ?>
+                    <div class="alert alert-info text-center"><?= $notification ?></div>
+                <?php endif; ?>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        General Settings
+                    </div>
+                    <div class="card-body">
+                        <form action="settings.php" method="POST">
+                            <div class="mb-3">
+                                <label for="site_title" class="form-label">Site Title</label>
+                                <input type="text" id="site_title" name="site_title" class="form-control" value="<?= htmlspecialchars($current_site_title) ?>" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="site_description" class="form-label">Site Description</label>
+                                <textarea id="site_description" name="site_description" class="form-control" rows="3" required><?= htmlspecialchars($current_site_description) ?></textarea>
+                            </div>
+                            <button type="submit" name="save_settings" class="btn btn-primary w-100">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 

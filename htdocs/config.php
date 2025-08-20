@@ -52,4 +52,54 @@ function log_activity($user_id, $action, $details = null, $ip_address = null) {
     $stmt->execute();
     $stmt->close();
 }
+
+/**
+ * Gets a setting value from the database.
+ *
+ * @param string $key The setting key.
+ * @param mixed $default The default value to return if the setting is not found.
+ * @return mixed The setting value or the default value.
+ */
+function get_setting($key, $default = null) {
+    global $conn;
+    $stmt = $conn->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+    $stmt->bind_param("s", $key);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        return $row['setting_value'];
+    }
+    return $default;
+}
+
+/**
+ * Sets a setting value in the database.
+ * Inserts if the key does not exist, updates if it does.
+ *
+ * @param string $key The setting key.
+ * @param mixed $value The setting value.
+ * @return bool True on success, false on failure.
+ */
+function set_setting($key, $value) {
+    global $conn;
+    // Check if setting exists
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM settings WHERE setting_key = ?");
+    $stmt->bind_param("s", $key);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_row();
+    $exists = $row[0] > 0;
+    $stmt->close();
+
+    if ($exists) {
+        $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
+        $stmt->bind_param("ss", $value, $key);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
+        $stmt->bind_param("ss", $key, $value);
+    }
+    $success = $stmt->execute();
+    $stmt->close();
+    return $success;
+}
 ?>
