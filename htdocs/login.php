@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Basic validation
     if (empty($username) || empty($password)) {
         $notification = "Username and password are required.";
+        log_activity(null, 'User Login Failed', 'Missing credentials for username: ' . $username); // Log failed attempt
     } else {
         // Fetch user from database
         $stmt = $conn->prepare("SELECT id, username, password, is_admin FROM users WHERE username = ?");
@@ -32,6 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['username'] = $db_username;
                 $_SESSION['is_admin'] = $is_admin;
 
+                log_activity($id, 'User Login', 'Successful login for username: ' . $db_username); // Log successful login
+
                 // Redirect to dashboard or home page
                 if ($is_admin) {
                     header("Location: guru/admin_dashboard.php"); // Redirect to admin panel if admin
@@ -41,9 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 exit;
             } else {
                 $notification = "Invalid username or password.";
+                log_activity(null, 'User Login Failed', 'Invalid password for username: ' . $username); // Log failed attempt
             }
         } else {
             $notification = "Invalid username or password.";
+            log_activity(null, 'User Login Failed', 'Invalid username: ' . $username); // Log failed attempt
         }
         $stmt->close();
     }
