@@ -58,6 +58,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
         $params = "s";
         $bind_values = [$new_email];
 
+        // If username is changed, update it
+        $new_username = htmlspecialchars($_POST['username']);
+        if ($new_username !== $user['username']) {
+            // Check if new username already exists
+            $stmt_check_username = $conn->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
+            $stmt_check_username->bind_param("si", $new_username, $user_id);
+            $stmt_check_username->execute();
+            $stmt_check_username->store_result();
+            if ($stmt_check_username->num_rows > 0) {
+                $notification = "Username already taken.";
+                $stmt_check_username->close();
+                goto end_update_profile; // Skip update and go to end
+            }
+            $stmt_check_username->close();
+
+            $update_sql = "UPDATE users SET username = ?, email = ?"; // Re-set SQL for username update
+            $params = "ss";
+            $bind_values = [$new_username, $new_email];
+            $_SESSION['username'] = $new_username; // Update session username
+        }
+
         if (!empty($new_password)) {
             $update_sql .= ", password = ?";
             $params .= "s";
@@ -72,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
 
         if ($stmt->execute()) {
             $notification = "Profile updated successfully!";
-            // Re-fetch user data to display updated email
+            log_activity($_SESSION['user_id'], 'User Profile Updated', 'User ' . $_SESSION['username'] . ' updated their profile.');
+            // Re-fetch user data to display updated email and username
             $stmt = $conn->prepare("SELECT username, email FROM users WHERE id = ?");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
@@ -84,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
         }
         $stmt->close();
     }
-}
+end_update_profile:;
 
 include 'header.php';
 ?>
@@ -121,7 +143,7 @@ include 'header.php';
                         <form action="profile.php" method="post">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
-                                <input type="text" id="username" name="username" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" readonly>
+                                <input type="text" id="username" name="username" class="form-control" value="<?= htmlspecialchars($user['username']) ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
