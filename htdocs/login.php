@@ -2,7 +2,6 @@
 /**
  * Handles user login.
  */
-session_start(); // Start session for user login
 include 'config.php'; // Include your database connection
 
 $notification = "";

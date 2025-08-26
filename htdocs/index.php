@@ -3,7 +3,6 @@
  * The main page of the application.
  * Handles entry creation, displays the latest entries, and includes search functionality.
  */
-session_start(); // Start session
 include 'config.php';
 
 $notification = "";

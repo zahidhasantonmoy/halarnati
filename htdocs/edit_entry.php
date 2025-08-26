@@ -3,7 +3,6 @@
  * Edits an entry.
  * Only the owner of the entry can edit it.
  */
-session_start();
 include 'config.php';
 
 // Redirect if not logged in

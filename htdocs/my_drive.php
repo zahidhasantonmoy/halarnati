@@ -3,7 +3,6 @@
  * User's personal file storage (My Drive).
  * Allows uploading, viewing, and deleting personal files.
  */
-session_start();
 include 'config.php';
 
 // Redirect if not logged in

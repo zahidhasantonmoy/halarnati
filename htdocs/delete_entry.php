@@ -3,7 +3,6 @@
  * Deletes an entry.
  * Only the owner of the entry can delete it.
  */
-session_start();
 include 'config.php';
 
 // Redirect if not logged in

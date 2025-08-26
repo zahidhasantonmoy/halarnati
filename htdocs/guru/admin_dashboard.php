@@ -7,7 +7,6 @@ error_reporting(E_ALL);
  * Admin dashboard.
  * Displays stats and allows managing entries.
  */
-session_start();
 include '../config.php'; // Include your database connection
 
 // Redirect if not logged in or not an admin

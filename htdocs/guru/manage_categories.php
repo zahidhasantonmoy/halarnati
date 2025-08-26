@@ -3,7 +3,6 @@
  * Admin page for managing categories.
  * Allows adding, editing, and deleting categories.
  */
-session_start();
 include '../config.php';
 
 // Redirect if not logged in or not an admin

@@ -3,7 +3,6 @@
  * Admin page for managing users.
  * Allows adding, editing, and deleting users.
  */
-session_start();
 include '../config.php';
 
 // Redirect if not logged in or not an admin

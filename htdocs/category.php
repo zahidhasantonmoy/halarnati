@@ -2,7 +2,6 @@
 /**
  * Displays entries by category.
  */
-session_start();
 include 'config.php';
 
 $slug = isset($_GET['slug']) ? htmlspecialchars($_GET['slug']) : null;

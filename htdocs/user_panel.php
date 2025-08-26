@@ -3,7 +3,6 @@
  * User dashboard.
  * Displays user's entries and stats.
  */
-session_start();
 include 'config.php';
 
 // Redirect if not logged in

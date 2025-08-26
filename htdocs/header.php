@@ -1,8 +1,6 @@
 <?php
 include 'config.php'; // Include config for settings functions
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-} ?>
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
