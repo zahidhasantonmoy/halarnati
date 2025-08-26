@@ -8,19 +8,21 @@ ini_set('error_log', __DIR__ . '/php_error.log'); // Log errors to php_error.log
 ini_set('display_errors', 0); // Disable displaying errors on screen for production
 error_reporting(E_ALL); // Keep error reporting enabled for logging
 
-// Database connection
+// Database connection parameters
 $host = 'sql203.infinityfree.com';
 $user = 'if0_37868453';
 $pass = 'Yho7V4gkz6bP1';
-$db = 'if0_37868453_halarnati';
+$db_name = 'if0_37868453_halarnati'; // Renamed to avoid conflict with $db object
 $port = 3306; // Default MySQL port
 
-$conn = new mysqli($host, $user, $pass, $db, $port);
+// Include the Database class
+require_once __DIR__ . '/includes/Database.php';
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// Instantiate the Database class
+$db = new Database($host, $user, $pass, $db_name, $port);
+
+// Replace global $conn with global $db in functions
+// log_activity, get_setting, set_setting will now use $db->getConnection() or $db methods directly.
 
 if (!function_exists('log_activity')) {
 /**
@@ -32,31 +34,26 @@ if (!function_exists('log_activity')) {
  * @param string|null $ip_address The IP address from which the action originated.
  */
 function log_activity($user_id, $action, $details = null, $ip_address = null) {
-    global $conn; // Access the global database connection
+    global $db; // Access the global Database object
 
     // Get IP address if not provided
     if ($ip_address === null) {
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
     }
 
-    $stmt = $conn->prepare("INSERT INTO user_activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)");
-    // 'siss' -> string, int, string, string (user_id can be null, so 'i' for int, but if null, it will be treated as 0 by bind_param, so better to use 's' and handle null explicitly or make user_id nullable in DB and pass null)
-    // For simplicity and to avoid issues with bind_param and null integers, we'll cast user_id to string if it's null.
-    $user_id_param = ($user_id === null) ? null : (int)$user_id;
-
-    // Use call_user_func_array for dynamic binding with potentially null values
-    $types = "isss"; // user_id (int), action (string), details (string), ip_address (string)
-    $params = array(&$user_id_param, &$action, &$details, &$ip_address);
+    // Use the insert method of the Database class
+    $sql = "INSERT INTO user_activity_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
+    $types = "isss";
+    $params = [$user_id, $action, $details, $ip_address];
 
     // Adjust types and params if user_id is null, to match 's' for string
     if ($user_id === null) {
         $types[0] = 's'; // Change 'i' to 's' for user_id
-        $user_id_param = null; // Ensure it's explicitly null for binding
+        $params[0] = null; // Ensure it's explicitly null for binding
     }
-
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $stmt->close();
+    
+    // Use the query method for simplicity, as insert returns last_insert_id which is not needed here
+    $db->query($sql, $params, $types);
 }
 }
 
@@ -69,12 +66,10 @@ if (!function_exists('get_setting')) {
  * @return mixed The setting value or the default value.
  */
 function get_setting($key, $default = null) {
-    global $conn;
-    $stmt = $conn->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
-    $stmt->bind_param("s", $key);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
+    global $db;
+    $sql = "SELECT setting_value FROM settings WHERE setting_key = ?";
+    $row = $db->fetch($sql, [$key], "s");
+    if ($row) {
         return $row['setting_value'];
     }
     return $default;
@@ -91,26 +86,20 @@ if (!function_exists('set_setting')) {
  * @return bool True on success, false on failure.
  */
 function set_setting($key, $value) {
-    global $conn;
+    global $db;
     // Check if setting exists
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM settings WHERE setting_key = ?");
-    $stmt->bind_param("s", $key);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_row();
-    $exists = $row[0] > 0;
-    $stmt->close();
+    $sql_check = "SELECT COUNT(*) FROM settings WHERE setting_key = ?";
+    $row_check = $db->fetch($sql_check, [$key], "s");
+    $exists = $row_check['COUNT(*)'] > 0;
 
     if ($exists) {
-        $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
-        $stmt->bind_param("ss", $value, $key);
+        $sql = "UPDATE settings SET setting_value = ? WHERE setting_key = ?";
+        $affected_rows = $db->update($sql, [$value, $key], "ss");
     } else {
-        $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
-        $stmt->bind_param("ss", $key, $value);
+        $sql = "INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)";
+        $affected_rows = $db->insert($sql, [$key, $value], "ss");
     }
-    $success = $stmt->execute();
-    $stmt->close();
-    return $success;
+    return $affected_rows > 0;
 }
 }
 ?>

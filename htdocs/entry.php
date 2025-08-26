@@ -3,7 +3,7 @@
  * Displays a single entry.
  * Handles unlocking of password-protected entries.
  */
-include 'config.php';
+include 'config.php'; // config.php now initializes $db
 
 // Get entry ID or slug from URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -11,31 +11,17 @@ $slug = isset($_GET['slug']) ? htmlspecialchars($_GET['slug']) : null;
 
 $entry = null;
 if ($id) {
-    $stmt = $conn->prepare("SELECT * FROM entries WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $entry = $result->fetch_assoc();
-    $stmt->close();
+    $entry = $db->fetch("SELECT * FROM entries WHERE id = ?", [$id], "i");
 } elseif ($slug) {
-    $stmt = $conn->prepare("SELECT * FROM entries WHERE slug = ?");
-    $stmt->bind_param("s", $slug);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $entry = $result->fetch_assoc();
-    $stmt->close();
+    $entry = $db->fetch("SELECT * FROM entries WHERE slug = ?", [$slug], "s");
 }
 
 if (!$entry) {
     die("Entry not found.");
 }
 
-// Increment view count only if not already viewed in this session (optional, for more accurate counts)
-// For simplicity, we'll increment on every page load for now.
-    $stmt = $conn->prepare("UPDATE entries SET view_count = view_count + 1 WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+// Increment view count
+$db->update("UPDATE entries SET view_count = view_count + 1 WHERE id = ?", [$id], "i");
 
 // Handle unlock request
 $isUnlocked = false;
