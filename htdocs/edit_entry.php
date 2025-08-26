@@ -57,18 +57,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
 
     $filePath = $entry['file_path']; // Keep the old file path by default
 
+    // Define allowed file types and max size
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx']; // Add more as needed
+    $maxFileSize = 5 * 1024 * 1024; // 5 MB
+
     // Handle file upload if a new file is provided
     if ($entry_type === 'file' && !empty($_FILES['file']['name'])) {
-        // Delete the old file if it exists
-        if ($filePath && file_exists($filePath)) {
-            unlink($filePath);
+        // Validate file size
+        if ($_FILES['file']['size'] > $maxFileSize) {
+            $notification = "File size exceeds the maximum allowed limit (5MB).";
+            $entry_type = 'text'; // Revert to text type if file upload fails
+        } else {
+            // Validate file type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $_FILES['file']['tmp_name']);
+            finfo_close($finfo);
+
+            $fileExtension = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($mimeType, $allowedMimeTypes) || !in_array($fileExtension, $allowedExtensions)) {
+                $notification = "Invalid file type. Only images (JPG, PNG, GIF), PDF, and text/document files are allowed.";
+                $entry_type = 'text'; // Revert to text type if file upload fails
+            } else {
+                // Delete the old file if it exists
+                if ($filePath && file_exists($filePath)) {
+                    unlink($filePath);
+                }
+                $uploadsDir = 'uploads/';
+                if (!is_dir($uploadsDir)) {
+                    mkdir($uploadsDir, 0777, true);
+                }
+                // Generate a unique filename
+                $newFileName = uniqid('file_', true) . '.' . $fileExtension;
+                $filePath = $uploadsDir . $newFileName;
+
+                if (!move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
+                    $notification = "Error uploading file.";
+                    $entry_type = 'text'; // Revert to text type if file upload fails
+                }
+            }
         }
-        $uploadsDir = 'uploads/';
-        if (!is_dir($uploadsDir)) {
-            mkdir($uploadsDir, 0777, true);
-        }
-        $filePath = $uploadsDir . basename($_FILES['file']['name']);
-        move_uploaded_file($_FILES['file']['tmp_name'], $filePath);
     }
 
     // Update the entry in the database

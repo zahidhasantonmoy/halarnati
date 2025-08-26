@@ -33,14 +33,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $file = $_FILES['file'];
     $filePath = null;
 
+    // Define allowed file types and max size
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx']; // Add more as needed
+    $maxFileSize = 5 * 1024 * 1024; // 5 MB
+
     // Handle file upload
     if ($entry_type === 'file' && $file['name']) {
-        $uploadsDir = 'uploads/';
-        if (!is_dir($uploadsDir)) {
-            mkdir($uploadsDir, 0777, true);
+        // Validate file size
+        if ($file['size'] > $maxFileSize) {
+            $notification = "File size exceeds the maximum allowed limit (5MB).";
+            $entry_type = 'text'; // Revert to text type if file upload fails
+        } else {
+            // Validate file type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($mimeType, $allowedMimeTypes) || !in_array($fileExtension, $allowedExtensions)) {
+                $notification = "Invalid file type. Only images (JPG, PNG, GIF), PDF, and text/document files are allowed.";
+                $entry_type = 'text'; // Revert to text type if file upload fails
+            } else {
+                $uploadsDir = 'uploads/';
+                if (!is_dir($uploadsDir)) {
+                    mkdir($uploadsDir, 0777, true);
+                }
+                // Generate a unique filename
+                $newFileName = uniqid('file_', true) . '.' . $fileExtension;
+                $filePath = $uploadsDir . $newFileName;
+
+                if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+                    $notification = "Error uploading file.";
+                    $entry_type = 'text'; // Revert to text type if file upload fails
+                }
+            }
         }
-        $filePath = $uploadsDir . basename($file['name']);
-        move_uploaded_file($file['tmp_name'], $filePath);
     }
 
     $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
