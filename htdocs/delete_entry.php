@@ -19,12 +19,7 @@ if (!$entry_id) {
 }
 
 // Fetch entry to get file_path before deleting
-$stmt = $conn->prepare("SELECT file_path FROM entries WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $entry_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$entry = $result->fetch_assoc();
-$stmt->close();
+$entry = $db->fetch("SELECT file_path FROM entries WHERE id = ? AND user_id = ?", [$entry_id, $user_id], "ii");
 
 if (!$entry) {
     die("Entry not found or you don't have permission to delete this entry.");
@@ -36,14 +31,12 @@ if ($entry['file_path'] && file_exists($entry['file_path'])) {
 }
 
 // Delete entry from database
-$stmt = $conn->prepare("DELETE FROM entries WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $entry_id, $user_id);
+$affected_rows = $db->delete("DELETE FROM entries WHERE id = ? AND user_id = ?", [$entry_id, $user_id], "ii");
 
-if ($stmt->execute()) {
+if ($affected_rows > 0) {
     header("Location: my_entries.php?status=deleted");
     exit;
 } else {
-    die("Error deleting entry: " . $stmt->error);
+    die("Error deleting entry.");
 }
-$stmt->close();
 ?>

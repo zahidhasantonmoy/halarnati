@@ -74,26 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
     // Insert entry into the database
-    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
-    $stmt->bind_param("ssssssii", $title, $text, $entry_type, $filePath, $lockKey, $customSlug, $user_id, $category_id);
-    $stmt->execute();
-    $stmt->close();
+    $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $lockKey, $customSlug, $user_id, $category_id], "ssssssii");
 
     $notification = "Entry successfully added!";
-    log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $conn->insert_id . ')');
+    log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
 }
 
 // Handle search functionality
 $searchResults = [];
 if (isset($_GET['search_query'])) {
     $searchQuery = htmlspecialchars($_GET['search_query']);
-    $stmt = $conn->prepare("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC");
     $likeQuery = '%' . $searchQuery . '%';
-    $stmt->bind_param("ss", $likeQuery, $likeQuery);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $searchResults = $result->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
+    $searchResults = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC", [$likeQuery, $likeQuery], "ss");
 }
 
 // Pagination functionality
@@ -102,26 +94,19 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
 // Fetch the entries for the current page
-$stmt = $conn->prepare("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id ORDER BY e.created_at DESC LIMIT ? OFFSET ?");
-$stmt->bind_param("ii", $limit, $offset);
-$stmt->execute();
-$result = $stmt->get_result();
-$entries = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$entries = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id ORDER BY e.created_at DESC LIMIT ? OFFSET ?", [$limit, $offset], "ii");
 
 // Get total number of entries
-$totalResult = $conn->query("SELECT COUNT(*) AS total FROM entries");
-$totalEntries = $totalResult->fetch_assoc()['total'];
+$totalResult = $db->fetch("SELECT COUNT(*) AS total FROM entries");
+$totalEntries = $totalResult['total'];
 $totalPages = ceil($totalEntries / $limit);
 
 // Get total view count for footer
-$totalViewsResult = $conn->query("SELECT SUM(view_count) AS total_views FROM entries");
-$totalViews = $totalViewsResult->fetch_assoc()['total_views'] ?? 0;
+$totalViewsResult = $db->fetch("SELECT SUM(view_count) AS total_views FROM entries");
+$totalViews = $totalViewsResult['total_views'] ?? 0;
 
 // Fetch all categories
-$categories_query = "SELECT id, name, slug FROM categories ORDER BY name ASC";
-$categories_result = $conn->query($categories_query);
-$categories = $categories_result->fetch_all(MYSQLI_ASSOC);
+$categories = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name ASC");
 
 include 'header.php';
 ?>

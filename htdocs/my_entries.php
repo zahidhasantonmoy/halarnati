@@ -24,21 +24,12 @@ $search = htmlspecialchars($_GET['search'] ?? '');
 $search_query_param = '%' . $search . '%';
 
 // Fetch user's entries with search and pagination
-$stmt = $conn->prepare("SELECT id, title, type, created_at, view_count, slug FROM entries WHERE user_id = ? AND (title LIKE ? OR text LIKE ?) ORDER BY created_at DESC LIMIT ? OFFSET ?");
-$stmt->bind_param("issii", $user_id, $search_query_param, $search_query_param, $limit, $offset);
-$stmt->execute();
-$result = $stmt->get_result();
-$user_entries = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$user_entries = $db->fetchAll("SELECT id, title, type, created_at, view_count, slug FROM entries WHERE user_id = ? AND (title LIKE ? OR text LIKE ?) ORDER BY created_at DESC LIMIT ? OFFSET ?", [$user_id, $search_query_param, $search_query_param, $limit, $offset], "issii");
 
 // Total entry count for pagination
-$total_entries_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM entries WHERE user_id = ? AND (title LIKE ? OR text LIKE ?)");
-$total_entries_stmt->bind_param("iss", $user_id, $search_query_param, $search_query_param);
-$total_entries_stmt->execute();
-$total_entries_result = $total_entries_stmt->get_result()->fetch_assoc();
+$total_entries_result = $db->fetch("SELECT COUNT(*) AS total FROM entries WHERE user_id = ? AND (title LIKE ? OR text LIKE ?)", [$user_id, $search_query_param, $search_query_param], "iss");
 $total_user_entries = $total_entries_result['total'];
 $totalPages = ceil($total_user_entries / $limit);
-$total_entries_stmt->close();
 
 include 'header.php';
 ?>

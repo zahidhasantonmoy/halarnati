@@ -23,31 +23,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $notification = "Password must be at least 6 characters long.";
     } else {
         // Check if username or email already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
-        $stmt->bind_param("ss", $username, $email);
-        $stmt->execute();
-        $stmt->store_result();
+        $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
 
-        if ($stmt->num_rows > 0) {
+        if ($existing_user) {
             $notification = "Username or Email already exists.";
         } else {
             // Hash password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Insert new user
-            $stmt = $conn->prepare("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)");
-            $stmt->bind_param("sss", $username, $email, $hashed_password);
+            $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)", [$username, $email, $hashed_password], "sss");
 
-            if ($stmt->execute()) {
+            if ($insert_id) {
                 $notification = "Registration successful! You can now log in.";
                 // Optionally redirect to login page
                 // header("Location: login.php");
                 // exit;
             } else {
-                $notification = "Error: " . $stmt->error;
+                $notification = "Error: " . $db->getConnection()->error;
             }
         }
-        $stmt->close();
     }
 }
 ?>

@@ -20,21 +20,14 @@ if (!$entry_id) {
 }
 
 // Fetch the entry from the database
-$stmt = $conn->prepare("SELECT * FROM entries WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $entry_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$entry = $result->fetch_assoc();
-$stmt->close();
+$entry = $db->fetch("SELECT * FROM entries WHERE id = ? AND user_id = ?", [$entry_id, $user_id], "ii");
 
 if (!$entry) {
     die("Entry not found or you don't have permission to edit this entry.");
 }
 
 // Fetch all categories
-$categories_query = "SELECT id, name FROM categories ORDER BY name ASC";
-$categories_result = $conn->query($categories_query);
-$categories = $categories_result->fetch_all(MYSQLI_ASSOC);
+$categories = $db->fetchAll("SELECT id, name FROM categories ORDER BY name ASC");
 
 // Handle form submission for updating the entry
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
@@ -100,21 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
     }
 
     // Update the entry in the database
-    $stmt = $conn->prepare("UPDATE entries SET title = ?, text = ?, type = ?, file_path = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ssssssiii", $title, $text, $entry_type, $filePath, $lockKey, $customSlug, $category_id, $entry_id, $user_id);
+    $affected_rows = $db->update("UPDATE entries SET title = ?, text = ?, type = ?, file_path = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?", [$title, $text, $entry_type, $filePath, $lockKey, $customSlug, $category_id, $entry_id, $user_id], "ssssssiii");
     
-    if ($stmt->execute()) {
+    if ($affected_rows > 0) {
         $notification = "Entry updated successfully!";
         // Re-fetch the entry to show the updated data
-        $stmt_refetch = $conn->prepare("SELECT * FROM entries WHERE id = ?");
-        $stmt_refetch->bind_param("i", $entry_id);
-        $stmt_refetch->execute();
-        $entry = $stmt_refetch->get_result()->fetch_assoc();
-        $stmt_refetch->close();
+        $entry = $db->fetch("SELECT * FROM entries WHERE id = ?", [$entry_id], "i");
     } else {
-        $notification = "Error updating entry: " . $stmt->error;
+        $notification = "Error updating entry: " . $db->getConnection()->error;
     }
-    $stmt->close();
 }
 
 include 'header.php';

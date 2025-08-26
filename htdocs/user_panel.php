@@ -15,12 +15,7 @@ $user_id = $_SESSION['user_id'];
 $username = htmlspecialchars($_SESSION['username']);
 
 // Fetch user's entries
-$stmt = $conn->prepare("SELECT id, title, type, created_at, view_count, slug FROM entries WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$user_entries = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$user_entries = $db->fetchAll("SELECT id, title, type, created_at, view_count, slug FROM entries WHERE user_id = ? ORDER BY created_at DESC", [$user_id], "i");
 
 // Fetch user's stats (e.g., total entries, total views on their entries)
 $total_user_entries = count($user_entries);

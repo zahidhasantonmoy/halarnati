@@ -29,14 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_file'])) {
         $filePath = $user_dir . '/' . $fileName;
 
         if (move_uploaded_file($file['tmp_name'], $filePath)) {
-            $stmt = $conn->prepare("INSERT INTO user_files (user_id, file_name, file_path, file_size) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("issi", $user_id, $fileName, $filePath, $fileSize);
-            if ($stmt->execute()) {
+            $insert_id = $db->insert("INSERT INTO user_files (user_id, file_name, file_path, file_size) VALUES (?, ?, ?, ?)", [$user_id, $fileName, $filePath, $fileSize], "issi");
+            if ($insert_id) {
                 $notification = "File uploaded successfully!";
             } else {
-                $notification = "Error uploading file to database.";
+                $notification = "Error uploading file to database: " . $db->getConnection()->error;
             }
-            $stmt->close();
         } else {
             $notification = "Error moving uploaded file.";
         }
@@ -50,35 +48,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_file'])) {
     $file_id = (int)$_POST['file_id'];
 
     // Fetch file path to delete the file from storage
-    $stmt = $conn->prepare("SELECT file_path FROM user_files WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $file_id, $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
-    $filePath = $result['file_path'];
-    $stmt->close();
+    $file_to_delete = $db->fetch("SELECT file_path FROM user_files WHERE id = ? AND user_id = ?", [$file_id, $user_id], "ii");
 
-    if ($filePath && file_exists($filePath)) {
-        unlink($filePath);
+    if ($file_to_delete && file_exists($file_to_delete['file_path'])) {
+        unlink($file_to_delete['file_path']);
     }
 
     // Delete file from database
-    $stmt = $conn->prepare("DELETE FROM user_files WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $file_id, $user_id);
-    if ($stmt->execute()) {
+    $affected_rows = $db->delete("DELETE FROM user_files WHERE id = ? AND user_id = ?", [$file_id, $user_id], "ii");
+    if ($affected_rows > 0) {
         $notification = "File deleted successfully!";
     } else {
-        $notification = "Error deleting file.";
+        $notification = "Error deleting file: " . $db->getConnection()->error;
     }
-    $stmt->close();
 }
 
 // Fetch user's files
-$stmt = $conn->prepare("SELECT * FROM user_files WHERE user_id = ? ORDER BY uploaded_at DESC");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$user_files = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$user_files = $db->fetchAll("SELECT * FROM user_files WHERE user_id = ? ORDER BY uploaded_at DESC", [$user_id], "i");
 
 include 'header.php';
 ?>

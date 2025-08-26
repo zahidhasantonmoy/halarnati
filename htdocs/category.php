@@ -11,12 +11,7 @@ if (!$slug) {
 }
 
 // Fetch category details
-$stmt = $conn->prepare("SELECT * FROM categories WHERE slug = ?");
-$stmt->bind_param("s", $slug);
-$stmt->execute();
-$result = $stmt->get_result();
-$category = $result->fetch_assoc();
-$stmt->close();
+$category = $db->fetch("SELECT * FROM categories WHERE slug = ?", [$slug], "s");
 
 if (!$category) {
     die("Category not found.");
@@ -28,20 +23,12 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
 // Fetch entries for the current category and page
-$stmt = $conn->prepare("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.category_id = ? ORDER BY e.created_at DESC LIMIT ? OFFSET ?");
-$stmt->bind_param("iii", $category['id'], $limit, $offset);
-$stmt->execute();
-$result = $stmt->get_result();
-$entries = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$entries = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.category_id = ? ORDER BY e.created_at DESC LIMIT ? OFFSET ?", [$category['id'], $limit, $offset], "iii");
 
 // Get total number of entries for the category
-$totalResult = $conn->prepare("SELECT COUNT(*) AS total FROM entries WHERE category_id = ?");
-$totalResult->bind_param("i", $category['id']);
-$totalResult->execute();
-$totalEntries = $totalResult->get_result()->fetch_assoc()['total'];
+$totalResult = $db->fetch("SELECT COUNT(*) AS total FROM entries WHERE category_id = ?", [$category['id']], "i");
+$totalEntries = $totalResult['total'];
 $totalPages = ceil($totalEntries / $limit);
-$totalResult->close();
 
 include 'header.php';
 ?>
@@ -141,9 +128,7 @@ include 'header.php';
                         <ul class="list-group list-group-flush">
                             <?php
                             // Fetch all categories for the sidebar
-                            $categories_query_sidebar = "SELECT id, name, slug FROM categories ORDER BY name ASC";
-                            $categories_result_sidebar = $conn->query($categories_query_sidebar);
-                            $categories_sidebar = $categories_result_sidebar->fetch_all(MYSQLI_ASSOC);
+                            $categories_sidebar = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name ASC");
                             foreach ($categories_sidebar as $category_sidebar):
                             ?>
                                 <li class="list-group-item"><a href="category.php?slug=<?= $category_sidebar['slug'] ?>" class="text-decoration-none"><?= htmlspecialchars($category_sidebar['name']) ?></a></li>
