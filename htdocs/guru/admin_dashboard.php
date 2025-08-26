@@ -481,7 +481,7 @@ include '../header.php'; // Use new header
                                         <button class="btn btn-primary btn-sm edit-btn"
                                                 data-id="<?= $entry['id'] ?>"
                                                 data-title="<?= htmlspecialchars($entry['title']) ?>"
-                                                data-text="<?= htmlspecialchars($entry['text']) ?>"
+                                                data-text="<?= htmlspecialchars($entry['text'] ?? '') ?>"
                                                 data-lock="<?= htmlspecialchars($entryLockKey) ?>"
                                                 data-language="<?= htmlspecialchars($entryLanguage) ?>"
                                                 data-slug="<?= htmlspecialchars($entrySlug) ?>"
