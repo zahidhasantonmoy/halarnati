@@ -8,6 +8,9 @@ ini_set('error_log', __DIR__ . '/php_error.log'); // Log errors to php_error.log
 ini_set('display_errors', 0); // Disable displaying errors on screen for production
 error_reporting(E_ALL); // Keep error reporting enabled for logging
 
+// Include custom error handler
+require_once __DIR__ . '/includes/ErrorHandler.php';
+
 // Database connection parameters
 $host = 'sql203.infinityfree.com';
 $user = 'if0_37868453';
