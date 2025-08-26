@@ -32,7 +32,10 @@ if (!$entry) {
 
 // Increment view count only if not already viewed in this session (optional, for more accurate counts)
 // For simplicity, we'll increment on every page load for now.
-$conn->query("UPDATE entries SET view_count = view_count + 1 WHERE id = " . $id);
+    $stmt = $conn->prepare("UPDATE entries SET view_count = view_count + 1 WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
 
 // Handle unlock request
 $isUnlocked = false;

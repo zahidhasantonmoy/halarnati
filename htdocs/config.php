@@ -1,7 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Error Logging Configuration
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_error.log'); // Log errors to php_error.log in the same directory as config.php
+ini_set('display_errors', 0); // Disable displaying errors on screen for production
+error_reporting(E_ALL); // Keep error reporting enabled for logging
 
 // Database connection
 $host = 'sql203.infinityfree.com';
