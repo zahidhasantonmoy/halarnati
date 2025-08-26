@@ -69,14 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
             if ($stmt_check_username->num_rows > 0) {
                 $notification = "Username already taken.";
                 $stmt_check_username->close();
-                goto end_update_profile; // Skip update and go to end
-            }
-            $stmt_check_username->close();
+            } else {
+                $stmt_check_username->close();
 
-            $update_sql = "UPDATE users SET username = ?, email = ?"; // Re-set SQL for username update
-            $params = "ss";
-            $bind_values = [$new_username, $new_email];
-            $_SESSION['username'] = $new_username; // Update session username
+                $update_sql = "UPDATE users SET username = ?, email = ?"; // Re-set SQL for username update
+                $params = "ss";
+                $bind_values = [$new_username, $new_email];
+                $_SESSION['username'] = $new_username; // Update session username
+            }
         }
 
         if (!empty($new_password)) {
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
         }
         $stmt->close();
     }
-end_update_profile:;
+
 
 include 'header.php';
 ?>

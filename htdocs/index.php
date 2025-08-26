@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
     // Insert entry into the database
-    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, language, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
-    $stmt->bind_param("sssssssii", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug, $user_id, $category_id);
+    $stmt = $conn->prepare("INSERT INTO entries (title, text, type, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)");
+    $stmt->bind_param("ssssssii", $title, $text, $entry_type, $filePath, $lockKey, $customSlug, $user_id, $category_id);
     $stmt->execute();
     $stmt->close();
 
@@ -157,20 +157,7 @@ include 'header.php';
                         </select>
                     </div>
                     
-                    <div class="mb-3" id="language_field">
-                        <label for="language" class="form-label">Language (for Code)</label>
-                        <select id="language" name="language" class="form-select">
-                            <option value="php">PHP</option>
-                            <option value="javascript">JavaScript</option>
-                            <option value="css">CSS</option>
-                            <option value="html">HTML</option>
-                            <option value="sql">SQL</option>
-                            <option value="python">Python</option>
-                            <option value="markup">Markup (XML/HTML)</option>
-                            <option value="clike">C-like (C, C++, Java, C#)</option>
-                            <option value="">Other</option>
-                        </select>
-                    </div>
+                    
                     <div class="mb-3" id="file_upload_field">
                         <label for="file" class="form-label">Upload File</label>
                         <input type="file" id="file" name="file" class="form-control">

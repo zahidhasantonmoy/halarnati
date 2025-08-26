@@ -72,8 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
     }
 
     // Update the entry in the database
-    $stmt = $conn->prepare("UPDATE entries SET title = ?, text = ?, type = ?, language = ?, file_path = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("sssssssiii", $title, $text, $entry_type, $language, $filePath, $lockKey, $customSlug, $category_id, $entry_id, $user_id);
+    $stmt = $conn->prepare("UPDATE entries SET title = ?, text = ?, type = ?, file_path = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("ssssssiii", $title, $text, $entry_type, $filePath, $lockKey, $customSlug, $category_id, $entry_id, $user_id);
     
     if ($stmt->execute()) {
         $notification = "Entry updated successfully!";
@@ -122,20 +122,7 @@ include 'header.php';
                                 </select>
                             </div>
                             
-                            <div class="mb-3" id="language_field">
-                                <label for="language" class="form-label">Language (for Code)</label>
-                                <select id="language" name="language" class="form-select">
-                                    <option value="">None</option>
-                                    <option value="php" <?= $entry['language'] == 'php' ? 'selected' : '' ?>>PHP</option>
-                                    <option value="javascript" <?= $entry['language'] == 'javascript' ? 'selected' : '' ?>>JavaScript</option>
-                                    <option value="css" <?= $entry['language'] == 'css' ? 'selected' : '' ?>>CSS</option>
-                                    <option value="html" <?= $entry['language'] == 'html' ? 'selected' : '' ?>>HTML</option>
-                                    <option value="sql" <?= $entry['language'] == 'sql' ? 'selected' : '' ?>>SQL</option>
-                                    <option value="python" <?= $entry['language'] == 'python' ? 'selected' : '' ?>>Python</option>
-                                    <option value="markup" <?= $entry['language'] == 'markup' ? 'selected' : '' ?>>Markup</option>
-                                    <option value="clike" <?= $entry['language'] == 'clike' ? 'selected' : '' ?>>C-like</option>
-                                </select>
-                            </div>
+                            
                             <div class="mb-3" id="file_upload_field">
                                 <label for="file" class="form-label">Replace File (Optional)</label>
                                 <input type="file" id="file" name="file" class="form-control">
