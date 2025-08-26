@@ -14,16 +14,11 @@ $offset = ($page - 1) * $limit;
 
 // Fetch logs
 $logs_query = "SELECT ual.*, u.username FROM user_activity_logs ual LEFT JOIN users u ON ual.user_id = u.id ORDER BY ual.timestamp DESC LIMIT ? OFFSET ?";
-$stmt = $conn->prepare($logs_query);
-$stmt->bind_param("ii", $limit, $offset);
-$stmt->execute();
-$result = $stmt->get_result();
-$activity_logs = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$activity_logs = $db->fetchAll($logs_query, [$limit, $offset], "ii");
 
 // Get total number of logs for pagination
-$total_logs_result = $conn->query("SELECT COUNT(*) AS total FROM user_activity_logs");
-$total_logs = $total_logs_result->fetch_assoc()['total'];
+$total_logs_result = $db->fetch("SELECT COUNT(*) AS total FROM user_activity_logs");
+$total_logs = $total_logs_result['total'];
 $totalPages = ceil($total_logs / $limit);
 
 include '../header.php';

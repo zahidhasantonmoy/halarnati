@@ -10,7 +10,230 @@ error_reporting(E_ALL);
 include '../config.php'; // Include your database connection
 
 // Redirect if not logged in or not an admin
-if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin']) {
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+/**
+ * Admin dashboard.
+ * Displays stats and allows managing entries.
+ */
+include '../config.php'; // Include your database connection, which now initializes $db
+
+// Redirect if not logged in or not an admin
+if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
+    header("Location: ../login.php"); // Redirect to main login page
+    exit;
+}
+
+// Notifications
+$notification = "";
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entry'])) {
+    $entryId = (int)$_POST['entry_id'];
+
+    // Fetch file path before deleting
+    $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+    $filePath = $result['file_path'];
+
+    if ($filePath && file_exists('../' . $filePath)) { // Adjust path for admin context
+        unlink('../' . $filePath); // Delete the file from storage
+    }
+
+    $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
+
+    $notification = "Entry and associated file successfully deleted.";
+    log_activity($_SESSION['user_id'], 'Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_entry_modal'])) {
+    $entryId = (int)$_POST['entry_id'];
+    $title = htmlspecialchars($_POST['title']);
+    $text = htmlspecialchars($_POST['text']);
+    $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
+    $language = htmlspecialchars($_POST['language'] ?? '');
+    $slug = htmlspecialchars($_POST['slug'] ?? '');
+    $is_visible = (int)$_POST['is_visible'];
+
+    // Determine type based on language/file_path (simplified for admin edit)
+    $entry_type = 'text';
+    $current_file_path_result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+    $current_file_path = $current_file_path_result['file_path'];
+
+    if (!empty($current_file_path)) {
+        $entry_type = 'file';
+    }
+    elseif (!empty($language)) {
+        $entry_type = 'code';
+    }
+
+    $db->update("UPDATE entries SET title = ?, text = ?, type = ?, language = ?, lock_key = ?, slug = ?, is_visible = ? WHERE id = ?", [$title, $text, $entry_type, $language, $lockKey, $slug, $is_visible, $entryId], "ssssssii");
+
+    $notification = "Entry successfully updated.";
+    log_activity($_SESSION['user_id'], 'Entry Updated', 'Entry ID: ' . $entryId . ' updated. Title: ' . $title);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_visibility'])) {
+    $entryId = (int)$_POST['entry_id'];
+    $visibility = (int)$_POST['visibility']; // 0 = hidden, 1 = visible
+    $db->update("UPDATE entries SET is_visible = ? WHERE id = ?", [$visibility, $entryId], "ii");
+
+    $notification = $visibility ? "Entry made visible." : "Entry hidden.";
+    log_activity($_SESSION['user_id'], 'Entry Visibility Toggled', 'Entry ID: ' . $entryId . ' visibility set to: ' . ($visibility ? 'Visible' : 'Hidden'));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_entries'])) {
+    $result = $db->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
+    $filename = "entries_" . date('Ymd') . ".csv";
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="'. $filename . '"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['ID', 'Title', 'Text', 'Type', 'Language', 'File Path', 'Lock Key', 'Slug', 'User ID', 'Created At', 'View Count', 'Visibility']);
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, $row);
+    }
+    fclose($output);
+    log_activity($_SESSION['user_id'], 'Entries Exported', 'All entries exported to CSV.');
+    exit;
+}
+
+// Handle Bulk Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['selected_entries'])) {
+    $selected_entries = $_POST['selected_entries']; // Array of entry IDs
+
+    if (isset($_POST['bulk_delete'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            // Fetch file path before deleting
+            $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+            $filePath = $result['file_path'];
+
+            if ($filePath && file_exists('../' . $filePath)) {
+                unlink('../' . $filePath);
+            }
+
+            $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
+            log_activity($_SESSION['user_id'], 'Bulk Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted via bulk action.');
+        }
+        $notification = "Selected entries deleted successfully.";
+    } elseif (isset($_POST['bulk_hide'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            $db->update("UPDATE entries SET is_visible = 0 WHERE id = ?", [$entryId], "i");
+            log_activity($_SESSION['user_id'], 'Bulk Entry Hidden', 'Entry ID: ' . $entryId . ' hidden via bulk action.');
+        }
+        $notification = "Selected entries hidden successfully.";
+    } elseif (isset($_POST['bulk_show'])) {
+        foreach ($selected_entries as $entryId) {
+            $entryId = (int)$entryId;
+            $db->update("UPDATE entries SET is_visible = 1 WHERE id = ?", [$entryId], "i");
+            log_activity($_SESSION['user_id'], 'Bulk Entry Shown', 'Entry ID: ' . $entryId . ' shown via bulk action.');
+        }
+        $notification = "Selected entries shown successfully.";
+    }
+}
+
+// Pagination setup
+$limit = 10;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $limit;
+
+// Filtering and Sorting parameters
+$filterType = htmlspecialchars($_GET['filter_type'] ?? '');
+$filterVisibility = isset($_GET['filter_visibility']) ? (int)$_GET['filter_visibility'] : '';
+$sortBy = htmlspecialchars($_GET['sort_by'] ?? 'created_at');
+$sortOrder = htmlspecialchars($_GET['sort_order'] ?? 'DESC');
+
+// Validate sort_by and sort_order to prevent SQL injection
+$allowedSortBy = ['created_at', 'title', 'view_count'];
+if (!in_array($sortBy, $allowedSortBy)) {
+    $sortBy = 'created_at';
+}
+$allowedSortOrder = ['ASC', 'DESC'];
+if (!in_array($sortOrder, $allowedSortOrder)) {
+    $sortOrder = 'DESC';
+}
+
+// Search functionality
+$search = htmlspecialchars($_GET['search'] ?? '');
+
+// Build dynamic query
+$whereClauses = [];
+$params = [];
+$types = "";
+
+if (!empty($search)) {
+    $whereClauses[] = "(e.title LIKE ? OR e.text LIKE ?)";
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+    $types .= "ss";
+}
+
+if (!empty($filterType)) {
+    $whereClauses[] = "e.type = ?";
+    $params[] = $filterType;
+    $types .= "s";
+}
+
+if ($filterVisibility !== '') {
+    $whereClauses[] = "e.is_visible = ?";
+    $params[] = $filterVisibility;
+    $types .= "i";
+}
+
+$query = "SELECT e.id, e.title, e.type, e.language, e.file_path, e.lock_key, e.slug, e.user_id, e.created_at, e.view_count, e.is_visible, u.username FROM entries e LEFT JOIN users u ON e.user_id = u.id";
+
+if (!empty($whereClauses)) {
+    $query .= " WHERE " . implode(" AND ", $whereClauses);
+}
+
+$query .= " ORDER BY " . $sortBy . " " . $sortOrder . " LIMIT ? OFFSET ?";
+$params[] = $limit;
+$params[] = $offset;
+$types .= "ii";
+
+$entries = $db->fetchAll($query, $params, $types);
+
+// Total entry count for pagination (with filters)
+$countQuery = "SELECT COUNT(*) AS total FROM entries e";
+if (!empty($whereClauses)) {
+    $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
+}
+
+$totalEntriesResult = $db->fetch($countQuery, array_slice($params, 0, count($params) - 2), array_slice($types, 0, count($types) - 2)); // Remove limit and offset params for count query
+$totalEntries = $totalEntriesResult['total'] ?? 0;
+$totalPages = ceil($totalEntries / $limit);
+
+// Fetch dashboard stats
+$stats = [];
+$queries = [
+    'totalEntries' => "SELECT COUNT(*) AS total FROM entries",
+    'totalVisible' => "SELECT COUNT(*) AS total FROM entries WHERE is_visible = 1",
+    'totalHidden' => "SELECT COUNT(*) AS total FROM entries WHERE is_visible = 0",
+    'totalViews' => "SELECT SUM(view_count) AS total FROM entries",
+    'totalUsers' => "SELECT COUNT(*) AS total FROM users"
+];
+
+foreach ($queries as $key => $query) {
+    $result = $db->fetch($query);
+    if ($result) {
+        $stats[$key] = $result['total'] ?? 0;
+    } else {
+        $stats[$key] = 0;
+        // Error handling for stats queries can be improved, but for now, just set to 0
+    }
+}
+
+$totalEntries = $stats['totalEntries'];
+$totalVisible = $stats['totalVisible'];
+$totalHidden = $stats['totalHidden'];
+$totalViews = $stats['totalViews'];
+$totalUsers = $stats['totalUsers'];
+
+
+include '../header.php';
+?>
     header("Location: ../login.php"); // Redirect to main login page
     exit;
 }

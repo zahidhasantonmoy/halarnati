@@ -24,23 +24,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_category']) || i
         $notification = "Category Name and Slug are required.";
     } else {
         if ($category_id) { // Edit existing category
-            $stmt = $conn->prepare("UPDATE categories SET name = ?, slug = ? WHERE id = ?");
-            $stmt->bind_param("ssi", $name, $slug, $category_id);
-            if ($stmt->execute()) {
+            $affected_rows = $db->update("UPDATE categories SET name = ?, slug = ? WHERE id = ?", [$name, $slug, $category_id], "ssi");
+            if ($affected_rows > 0) {
                 $notification = "Category updated successfully.";
             } else {
-                $notification = "Error updating category: " . $stmt->error;
+                $notification = "Error updating category: " . $db->getConnection()->error;
             }
         } else {
-            $stmt = $conn->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
-            $stmt->bind_param("ss", $name, $slug);
-            if ($stmt->execute()) {
+            $insert_id = $db->insert("INSERT INTO categories (name, slug) VALUES (?, ?)", [$name, $slug], "ss");
+            if ($insert_id) {
                 $notification = "Category added successfully.";
             } else {
-                $notification = "Error adding category: " . $stmt->error;
+                $notification = "Error adding category: " . $db->getConnection()->error;
             }
         }
-        $stmt->close();
     }
 }
 
@@ -49,26 +46,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
     $category_id_to_delete = (int)$_POST['category_id'];
 
     // Remove associations from entry_categories table first
-    $stmt = $conn->prepare("DELETE FROM entry_categories WHERE category_id = ?");
-    $stmt->bind_param("i", $category_id_to_delete);
-    $stmt->execute();
-    $stmt->close();
+    $db->delete("DELETE FROM entry_categories WHERE category_id = ?", [$category_id_to_delete], "i");
 
     // Delete category
-    $stmt = $conn->prepare("DELETE FROM categories WHERE id = ?");
-    $stmt->bind_param("i", $category_id_to_delete);
-    if ($stmt->execute()) {
+    $affected_rows = $db->delete("DELETE FROM categories WHERE id = ?", [$category_id_to_delete], "i");
+    if ($affected_rows > 0) {
         $notification = "Category deleted successfully.";
     } else {
-        $notification = "Error deleting category: " . $stmt->error;
+        $notification = "Error deleting category: " . $db->getConnection()->error;
     }
-    $stmt->close();
 }
 
 // Fetch all categories
-$categories_query = "SELECT id, name, slug FROM categories ORDER BY name ASC";
-$categories_result = $conn->query($categories_query);
-$categories = $categories_result->fetch_all(MYSQLI_ASSOC);
+$categories = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name ASC");
 
 include '../header.php'; // Use new header
 ?>
