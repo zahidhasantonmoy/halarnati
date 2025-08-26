@@ -497,7 +497,6 @@ include '../header.php'; // Use new header
                         </table>
                     </form>
                 </div>
-                        <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
