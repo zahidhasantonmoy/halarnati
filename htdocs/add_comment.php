@@ -22,6 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $db->insert("INSERT INTO comments (entry_id, user_id, name, email, comment) VALUES (?, ?, ?, ?, ?)", [$entry_id, $user_id, $name, $email, $comment], "iisss");
 
+    // Get entry owner ID
+    $entry_owner = $db->fetch("SELECT user_id FROM entries WHERE id = ?", [$entry_id], "i");
+
+    if ($entry_owner && $entry_owner['user_id'] !== null && $entry_owner['user_id'] !== $user_id) {
+        // Create notification for the entry owner
+        $notification_message = "New comment on your entry \"" . $entry['title'] . "\" by " . $name . ".";
+        $db->insert("INSERT INTO notifications (user_id, message) VALUES (?, ?)", [$entry_owner['user_id'], $notification_message], "is");
+    }
+
     header("Location: entry.php?id=" . $entry_id);
     exit;
 }

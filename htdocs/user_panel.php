@@ -24,6 +24,9 @@ foreach ($user_entries as $entry) {
     $total_user_views += $entry['view_count'];
 }
 
+// Fetch unread notifications
+$notifications = $db->fetchAll("SELECT * FROM notifications WHERE user_id = ? AND is_read = FALSE ORDER BY created_at DESC", [$user_id], "i");
+
 include 'header.php';
 ?>
 
@@ -64,6 +67,32 @@ include 'header.php';
                                 <h3 class="card-title"><?= $total_user_views ?></h3>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-bell"></i> Notifications
+                    </div>
+                    <div class="card-body">
+                        <?php if (empty($notifications)): ?>
+                            <p>No new notifications.</p>
+                        <?php else: ?>
+                            <ul class="list-group mb-3">
+                                <?php foreach ($notifications as $notification_item): ?>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <?= htmlspecialchars($notification_item['message']) ?>
+                                        <form action="mark_notification_as_read.php" method="post" style="display:inline;">
+                                            <input type="hidden" name="notification_id" value="<?= $notification_item['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-success">Mark as Read</button>
+                                        </form>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <form action="mark_notification_as_read.php" method="post">
+                                <button type="submit" name="mark_all_as_read" class="btn btn-sm btn-secondary">Mark All as Read</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
 
