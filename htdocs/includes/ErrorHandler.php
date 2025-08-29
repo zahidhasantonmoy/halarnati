@@ -29,9 +29,11 @@ function customErrorHandler($errno, $errstr, $errfile, $errline) {
 
     // For production, display a generic error message to the user
     if (ini_get('display_errors') == 0) {
-        // You might want to redirect to a generic error page or display a simple message
-        // For now, we'll just output a generic message.
-        echo "<div style=\"text-align: center; padding: 20px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px; margin: 20px;\">An unexpected error occurred. Please try again later.</div>";
+        // In a production environment, avoid outputting sensitive error details.
+        // Instead, you might redirect to a generic error page or simply exit.
+        // For now, we'll just exit to prevent further execution and output.
+        // You could also log the error to a database and display a user-friendly message.
+        exit();
     } else {
         // For development, display the error details
         echo "<div style=\"text-align: left; padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin: 20px;\"><b>" . $type . ":</b> " . $errstr . "<br><b>File:</b> " . $errfile . "<br><b>Line:</b> " . $errline . "</div>";
