@@ -6,52 +6,42 @@ include 'config.php'; // Include your database connection
 
 $notification = "";
 
-// Generate CSRF token for the form
-$csrf_token = generate_csrf_token();
-
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        $notification = "CSRF token validation failed. Please try again.";
-        log_activity(null, 'CSRF Attack Attempt', 'Invalid CSRF token on login submission.');
-        // For now, we'll just set notification and let the page reload
+    $username = htmlspecialchars($_POST['username']);
+    $password = $_POST['password'];
+
+    // Basic validation
+    if (empty($username) || empty($password)) {
+        $notification = "Username and password are required.";
+        log_activity(null, 'User Login Failed', 'Missing credentials for username: ' . $username); // Log failed attempt
     } else {
-        $username = htmlspecialchars($_POST['username']);
-        $password = $_POST['password'];
+        // Fetch user from database
+        $user = $db->fetch("SELECT id, username, password, is_admin FROM users WHERE username = ?", [$username], "s");
 
-        // Basic validation
-        if (empty($username) || empty($password)) {
-            $notification = "Username and password are required.";
-            log_activity(null, 'User Login Failed', 'Missing credentials for username: ' . $username); // Log failed attempt
-        } else {
-            // Fetch user from database
-            $user = $db->fetch("SELECT id, username, password, is_admin FROM users WHERE username = ?", [$username], "s");
+        if ($user) {
+            // Verify password
+            if (password_verify($password, $user['password'])) {
+                // Password is correct, start session
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['is_admin'] = $user['is_admin'];
 
-            if ($user) {
-                // Verify password
-                if (password_verify($password, $user['password'])) {
-                    // Password is correct, start session
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['is_admin'] = $user['is_admin'];
+                log_activity($user['id'], 'User Login', 'Successful login for username: ' . $user['username']); // Log successful login
 
-                    log_activity($user['id'], 'User Login', 'Successful login for username: ' . $user['username']); // Log successful login
-
-                    // Redirect to dashboard or home page
-                    if ($user['is_admin']) {
-                        header("Location: guru/admin_dashboard.php"); // Redirect to admin panel if admin
-                    } else {
-                        header("Location: index.php"); // Redirect to home page for regular users
-                    }
-                    exit;
+                // Redirect to dashboard or home page
+                if ($user['is_admin']) {
+                    header("Location: guru/admin_dashboard.php"); // Redirect to admin panel if admin
                 } else {
-                    $notification = "Invalid username or password.";
-                    log_activity(null, 'User Login Failed', 'Invalid password for username: ' . $username); // Log failed attempt
+                    header("Location: index.php"); // Redirect to home page for regular users
                 }
+                exit;
             } else {
                 $notification = "Invalid username or password.";
-                log_activity(null, 'User Login Failed', 'Invalid username: ' . $username); // Log failed attempt
+                log_activity(null, 'User Login Failed', 'Invalid password for username: ' . $username); // Log failed attempt
             }
+        } else {
+            $notification = "Invalid username or password.";
+            log_activity(null, 'User Login Failed', 'Invalid username: ' . $username); // Log failed attempt
         }
     }
 }

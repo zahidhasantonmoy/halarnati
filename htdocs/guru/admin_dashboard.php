@@ -15,120 +15,111 @@ if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     exit;
 }
 
-// Generate CSRF token
-$csrf_token = generate_csrf_token();
-
 // Notifications
 $notification = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        $notification = "CSRF token validation failed. Please try again.";
-        log_activity(isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null, 'CSRF Attack Attempt', 'Invalid CSRF token on admin dashboard.');
-    } else {
-        if (isset($_POST['delete_entry'])) {
-            $entryId = (int)$_POST['entry_id'];
+    if (isset($_POST['delete_entry'])) {
+        $entryId = (int)$_POST['entry_id'];
 
-            // Fetch file path before deleting
-            $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
-            $filePath = $result['file_path'];
+        // Fetch file path before deleting
+        $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+        $filePath = $result['file_path'];
 
-            if ($filePath && file_exists('../' . $filePath)) { // Adjust path for admin context
-                unlink('../' . $filePath); // Delete the file from storage
-            }
-
-            $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
-
-            $notification = "Entry and associated file successfully deleted.";
-            log_activity($_SESSION['user_id'], 'Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted.');
+        if ($filePath && file_exists('../' . $filePath)) { // Adjust path for admin context
+            unlink('../' . $filePath); // Delete the file from storage
         }
 
-        if (isset($_POST['edit_entry_modal'])) {
-            $entryId = (int)$_POST['entry_id'];
-            $title = htmlspecialchars($_POST['title']);
-            $text = htmlspecialchars($_POST['text']);
-            $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
-            $language = htmlspecialchars($_POST['language'] ?? '');
-            $slug = htmlspecialchars($_POST['slug'] ?? '');
-            $is_visible = (int)$_POST['is_visible'];
+        $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
 
-            // Determine type based on language/file_path (simplified for admin edit)
-            $entry_type = 'text';
-            $current_file_path_result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
-            $current_file_path = $current_file_path_result['file_path'];
+        $notification = "Entry and associated file successfully deleted.";
+        log_activity($_SESSION['user_id'], 'Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted.');
+    }
 
-            if (!empty($current_file_path)) {
-                $entry_type = 'file';
-            }
-            elseif (!empty($language)) {
-                $entry_type = 'code';
-            }
+    if (isset($_POST['edit_entry_modal'])) {
+        $entryId = (int)$_POST['entry_id'];
+        $title = htmlspecialchars($_POST['title']);
+        $text = htmlspecialchars($_POST['text']);
+        $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
+        $language = htmlspecialchars($_POST['language'] ?? '');
+        $slug = htmlspecialchars($_POST['slug'] ?? '');
+        $is_visible = (int)$_POST['is_visible'];
 
-            $db->update("UPDATE entries SET title = ?, text = ?, type = ?, language = ?, lock_key = ?, slug = ?, is_visible = ? WHERE id = ?", [$title, $text, $entry_type, $language, $lockKey, $slug, $is_visible, $entryId], "ssssssii");
+        // Determine type based on language/file_path (simplified for admin edit)
+        $entry_type = 'text';
+        $current_file_path_result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+        $current_file_path = $current_file_path_result['file_path'];
 
-            $notification = "Entry successfully updated.";
-            log_activity($_SESSION['user_id'], 'Entry Updated', 'Entry ID: ' . $entryId . ' updated. Title: ' . $title);
+        if (!empty($current_file_path)) {
+            $entry_type = 'file';
+        }
+        elseif (!empty($language)) {
+            $entry_type = 'code';
         }
 
-        if (isset($_POST['toggle_visibility'])) {
-            $entryId = (int)$_POST['entry_id'];
-            $visibility = (int)$_POST['visibility']; // 0 = hidden, 1 = visible
-            $db->update("UPDATE entries SET is_visible = ? WHERE id = ?", [$visibility, $entryId], "ii");
+        $db->update("UPDATE entries SET title = ?, text = ?, type = ?, language = ?, lock_key = ?, slug = ?, is_visible = ? WHERE id = ?", [$title, $text, $entry_type, $language, $lockKey, $slug, $is_visible, $entryId], "ssssssii");
 
-            $notification = $visibility ? "Entry made visible." : "Entry hidden.";
-            log_activity($_SESSION['user_id'], 'Entry Visibility Toggled', 'Entry ID: ' . $entryId . ' visibility set to: ' . ($visibility ? 'Visible' : 'Hidden'));
+        $notification = "Entry successfully updated.";
+        log_activity($_SESSION['user_id'], 'Entry Updated', 'Entry ID: ' . $entryId . ' updated. Title: ' . $title);
+    }
+
+    if (isset($_POST['toggle_visibility'])) {
+        $entryId = (int)$_POST['entry_id'];
+        $visibility = (int)$_POST['visibility']; // 0 = hidden, 1 = visible
+        $db->update("UPDATE entries SET is_visible = ? WHERE id = ?", [$visibility, $entryId], "ii");
+
+        $notification = $visibility ? "Entry made visible." : "Entry hidden.";
+        log_activity($_SESSION['user_id'], 'Entry Visibility Toggled', 'Entry ID: ' . $entryId . ' visibility set to: ' . ($visibility ? 'Visible' : 'Hidden'));
+    }
+
+    if (isset($_POST['export_entries'])) {
+        $result = $db->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
+        $filename = "entries_" . date('Ymd') . ".csv";
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="'. $filename . '"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['ID', 'Title', 'Text', 'Type', 'Language', 'File Path', 'Lock Key', 'Slug', 'User ID', 'Created At', 'View Count', 'Visibility']);
+        while ($row = $result->fetch_assoc()) {
+            fputcsv($output, $row);
         }
+        fclose($output);
+        log_activity($_SESSION['user_id'], 'Entries Exported', 'All entries exported to CSV.');
+        exit;
+    }
 
-        if (isset($_POST['export_entries'])) {
-            $result = $db->query("SELECT id, title, text, type, language, file_path, lock_key, slug, user_id, created_at, view_count, is_visible FROM entries");
-            $filename = "entries_" . date('Ymd') . ".csv";
-            header('Content-Type: text/csv');
-            header('Content-Disposition: attachment; filename="'. $filename . '"');
-            $output = fopen('php://output', 'w');
-            fputcsv($output, ['ID', 'Title', 'Text', 'Type', 'Language', 'File Path', 'Lock Key', 'Slug', 'User ID', 'Created At', 'View Count', 'Visibility']);
-            while ($row = $result->fetch_assoc()) {
-                fputcsv($output, $row);
-            }
-            fclose($output);
-            log_activity($_SESSION['user_id'], 'Entries Exported', 'All entries exported to CSV.');
-            exit;
-        }
+    // Handle Bulk Actions
+    if (isset($_POST['selected_entries'])) {
+        $selected_entries = $_POST['selected_entries']; // Array of entry IDs
 
-        // Handle Bulk Actions
-        if (isset($_POST['selected_entries'])) {
-            $selected_entries = $_POST['selected_entries']; // Array of entry IDs
+        if (isset($_POST['bulk_delete'])) {
+            foreach ($selected_entries as $entryId) {
+                $entryId = (int)$entryId;
+                // Fetch file path before deleting
+                $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
+                $filePath = $result['file_path'];
 
-            if (isset($_POST['bulk_delete'])) {
-                foreach ($selected_entries as $entryId) {
-                    $entryId = (int)$entryId;
-                    // Fetch file path before deleting
-                    $result = $db->fetch("SELECT file_path FROM entries WHERE id = ?", [$entryId], "i");
-                    $filePath = $result['file_path'];
-
-                    if ($filePath && file_exists('../' . $filePath)) {
-                        unlink('../' . $filePath);
-                    }
-
-                    $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
-                    log_activity($_SESSION['user_id'], 'Bulk Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted via bulk action.');
+                if ($filePath && file_exists('../' . $filePath)) {
+                    unlink('../' . $filePath);
                 }
-                $notification = "Selected entries deleted successfully.";
-            } elseif (isset($_POST['bulk_hide'])) {
-                foreach ($selected_entries as $entryId) {
-                    $entryId = (int)$entryId;
-                    $db->update("UPDATE entries SET is_visible = 0 WHERE id = ?", [$entryId], "i");
-                    log_activity($_SESSION['user_id'], 'Bulk Entry Hidden', 'Entry ID: ' . $entryId . ' hidden via bulk action.');
-                }
-                $notification = "Selected entries hidden successfully.";
-            } elseif (isset($_POST['bulk_show'])) {
-                foreach ($selected_entries as $entryId) {
-                    $entryId = (int)$entryId;
-                    $db->update("UPDATE entries SET is_visible = 1 WHERE id = ?", [$entryId], "i");
-                    log_activity($_SESSION['user_id'], 'Bulk Entry Shown', 'Entry ID: ' . $entryId . ' shown via bulk action.');
-                }
-                $notification = "Selected entries shown successfully.";
+
+                $db->delete("DELETE FROM entries WHERE id = ?", [$entryId], "i");
+                log_activity($_SESSION['user_id'], 'Bulk Entry Deleted', 'Entry ID: ' . $entryId . ' and associated file deleted via bulk action.');
             }
+            $notification = "Selected entries deleted successfully.";
+        } elseif (isset($_POST['bulk_hide'])) {
+            foreach ($selected_entries as $entryId) {
+                $entryId = (int)$entryId;
+                $db->update("UPDATE entries SET is_visible = 0 WHERE id = ?", [$entryId], "i");
+                log_activity($_SESSION['user_id'], 'Bulk Entry Hidden', 'Entry ID: ' . $entryId . ' hidden via bulk action.');
+            }
+            $notification = "Selected entries hidden successfully.";
+        } elseif (isset($_POST['bulk_show'])) {
+            foreach ($selected_entries as $entryId) {
+                $entryId = (int)$entryId;
+                $db->update("UPDATE entries SET is_visible = 1 WHERE id = ?", [$entryId], "i");
+                log_activity($_SESSION['user_id'], 'Bulk Entry Shown', 'Entry ID: ' . $entryId . ' shown via bulk action.');
+            }
+            $notification = "Selected entries shown successfully.";
         }
     }
 }
@@ -303,7 +294,6 @@ include '../header.php';
                             </div>
                         </form>
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                             <button type="submit" name="export_entries" class="btn btn-success mb-3"><i class="fas fa-file-export"></i> Export All Entries</button>
                         </form>
                     </div>
@@ -359,7 +349,6 @@ include '../header.php';
 
                 <div class="table-responsive">
                     <form method="POST" action="admin_dashboard.php">
-                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                         <div class="mb-3">
                             <button type="submit" name="bulk_delete" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete selected entries?');"><i class="fas fa-trash"></i> Delete Selected</button>
                             <button type="submit" name="bulk_hide" class="btn btn-warning btn-sm"><i class="fas fa-eye-slash"></i> Hide Selected</button>
@@ -399,7 +388,6 @@ include '../header.php';
                                     <td><?= $entryViewCount ?></td>
                                     <td>
                                         <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                                             <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
                                             <input type="hidden" name="visibility" value="<?= $entry['is_visible'] ? 0 : 1 ?>">
                                             <button type="submit" name="toggle_visibility" class="btn btn-warning btn-sm">
@@ -407,7 +395,6 @@ include '../header.php';
                                             </button>
                                         </form>
                                         <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                                             <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
                                             <button type="submit" name="delete_entry" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this entry?');">
                                                 <i class="fas fa-trash"></i> Delete
@@ -479,7 +466,6 @@ include '../header.php';
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
             <input type="hidden" name="entry_id" id="edit-id">
             <div class="modal-content">
                 <div class="modal-header">

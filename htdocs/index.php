@@ -8,98 +8,89 @@ include 'includes/ImageHelper.php';
 
 $notification = "";
 
-// Generate CSRF token for the form
-$csrf_token = generate_csrf_token();
-
 // Handle form submission for creating a new entry
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        $notification = "CSRF token validation failed. Please try again.";
-        log_activity(isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null, 'CSRF Attack Attempt', 'Invalid CSRF token on entry submission.');
+    $title = htmlspecialchars($_POST['title']);
+    $text = htmlspecialchars($_POST['text']);
+    $language = htmlspecialchars($_POST['language'] ?? '');
+    $category_id = (int)$_POST['category_id'];
+    $is_markdown = isset($_POST['is_markdown']) ? 1 : 0;
+    $entry_type = 'text'; // Default to text
+
+    if (!empty($_FILES['file']['name'])) {
+        $entry_type = 'file';
+    } elseif (!empty($language)) { // If a language is selected, assume it's code
+        $entry_type = 'code';
+    }
+
+    $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
+    $customSlug = htmlspecialchars($_POST['custom_slug'] ?? '');
+    if (empty($customSlug)) {
+        $customSlug = bin2hex(random_bytes(5)); // Generates a 10-character random hex string
     } else {
-        $title = htmlspecialchars($_POST['title']);
-        $text = htmlspecialchars($_POST['text']);
-        $language = htmlspecialchars($_POST['language'] ?? '');
-        $category_id = (int)$_POST['category_id'];
-        $is_markdown = isset($_POST['is_markdown']) ? 1 : 0;
-        $entry_type = 'text'; // Default to text
+        $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
+    }
 
-        if (!empty($_FILES['file']['name'])) {
-            $entry_type = 'file';
-        } elseif (!empty($language)) { // If a language is selected, assume it's code
-            $entry_type = 'code';
-        }
+    $file = $_FILES['file'];
+    $filePath = null;
+    $thumbnailPath = null;
 
-        $lockKey = htmlspecialchars($_POST['lock_key'] ?? null);
-        $customSlug = htmlspecialchars($_POST['custom_slug'] ?? '');
-        if (empty($customSlug)) {
-            $customSlug = bin2hex(random_bytes(5)); // Generates a 10-character random hex string
+    // Define allowed file types and max size
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx']; // Add more as needed
+    $maxFileSize = 5 * 1024 * 1024; // 5 MB
+
+    // Handle file upload
+    if ($entry_type === 'file' && $file['name']) {
+        // Validate file size
+        if ($file['size'] > $maxFileSize) {
+            $notification = "File size exceeds the maximum allowed limit (5MB).";
+            $entry_type = 'text'; // Revert to text type if file upload fails
         } else {
-            $customSlug = preg_replace('/[^a-z0-9-]+/', '', strtolower($customSlug));
-        }
+            // Validate file type
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
 
-        $file = $_FILES['file'];
-        $filePath = null;
-        $thumbnailPath = null;
+            $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        // Define allowed file types and max size
-        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx']; // Add more as needed
-        $maxFileSize = 5 * 1024 * 1024; // 5 MB
-
-        // Handle file upload
-        if ($entry_type === 'file' && $file['name']) {
-            // Validate file size
-            if ($file['size'] > $maxFileSize) {
-                $notification = "File size exceeds the maximum allowed limit (5MB).";
+            if (!in_array($mimeType, $allowedMimeTypes) || !in_array($fileExtension, $allowedExtensions)) {
+                $notification = "Invalid file type. Only images (JPG, PNG, GIF), PDF, and text/document files are allowed.";
                 $entry_type = 'text'; // Revert to text type if file upload fails
             } else {
-                // Validate file type
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mimeType = finfo_file($finfo, $file['tmp_name']);
-                finfo_close($finfo);
+                $uploadsDir = 'uploads/';
+                if (!is_dir($uploadsDir)) {
+                    mkdir($uploadsDir, 0777, true);
+                }
+                // Generate a unique filename
+                $newFileName = uniqid('file_', true) . '.' . $fileExtension;
+                $filePath = $uploadsDir . $newFileName;
 
-                $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-                if (!in_array($mimeType, $allowedMimeTypes) || !in_array($fileExtension, $allowedExtensions)) {
-                    $notification = "Invalid file type. Only images (JPG, PNG, GIF), PDF, and text/document files are allowed.";
-                    $entry_type = 'text'; // Revert to text type if file upload fails
-                } else {
-                    $uploadsDir = 'uploads/';
-                    if (!is_dir($uploadsDir)) {
-                        mkdir($uploadsDir, 0777, true);
-                    }
-                    // Generate a unique filename
-                    $newFileName = uniqid('file_', true) . '.' . $fileExtension;
-                    $filePath = $uploadsDir . $newFileName;
-
-                    if (move_uploaded_file($file['tmp_name'], $filePath)) {
-                        // If the uploaded file is an image, create a thumbnail
-                        if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                            $thumbnailDir = 'uploads/thumbnails/';
-                            if (!is_dir($thumbnailDir)) {
-                                mkdir($thumbnailDir, 0777, true);
-                            }
-                            $thumbnailPath = $thumbnailDir . $newFileName;
-                            ImageHelper::createThumbnail($filePath, $thumbnailPath);
+                if (move_uploaded_file($file['tmp_name'], $filePath)) {
+                    // If the uploaded file is an image, create a thumbnail
+                    if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                        $thumbnailDir = 'uploads/thumbnails/';
+                        if (!is_dir($thumbnailDir)) {
+                            mkdir($thumbnailDir, 0777, true);
                         }
-                    } else {
-                        $notification = "Error uploading file.";
-                        $entry_type = 'text'; // Revert to text type if file upload fails
+                        $thumbnailPath = $thumbnailDir . $newFileName;
+                        ImageHelper::createThumbnail($filePath, $thumbnailPath);
                     }
+                } else {
+                    $notification = "Error uploading file.";
+                    $entry_type = 'text'; // Revert to text type if file upload fails
                 }
             }
         }
-
-        $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
-
-        // Insert entry into the database
-        $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiii");
-
-        $notification = "Entry successfully added!";
-        log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
     }
+
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
+
+    // Insert entry into the database
+    $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiii");
+
+    $notification = "Entry successfully added!";
+    log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
 }
 
 // Handle search functionality
@@ -174,7 +165,6 @@ include 'header.php';
             </div>
             <div class="card-body">
                 <form action="index.php" method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
                         <input type="text" id="title" name="title" class="form-control" required>

@@ -42,6 +42,12 @@ if ($entry['lock_key']) { // Only check if there's a lock key set
 
 $Parsedown = new Parsedown();
 
+// Social sharing URLs
+$entryUrl = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+$twitterShareUrl = "https://twitter.com/intent/tweet?url=" . urlencode($entryUrl) . "&text=" . urlencode($entry['title']);
+$facebookShareUrl = "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($entryUrl);
+$redditShareUrl = "https://www.reddit.com/submit?url=" . urlencode($entryUrl) . "&title=" . urlencode($entry['title']);
+
 include 'header.php';
 ?>
 
@@ -103,6 +109,12 @@ include 'header.php';
                             </button>
                             <textarea id="entry-content-display" style="position: absolute; left: -9999px;" readonly><?= htmlspecialchars($entry['text']) ?></textarea>
                         <?php endif; ?>
+
+                        <div class="mt-3">
+                            <a href="<?= $twitterShareUrl ?>" target="_blank" class="btn btn-info"><i class="fab fa-twitter"></i> Share on Twitter</a>
+                            <a href="<?= $facebookShareUrl ?>" target="_blank" class="btn btn-primary"><i class="fab fa-facebook"></i> Share on Facebook</a>
+                            <a href="<?= $redditShareUrl ?>" target="_blank" class="btn btn-danger"><i class="fab fa-reddit"></i> Share on Reddit</a>
+                        </div>
 
                         <a href="index.php" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Back to Home</a>
                     </div>

@@ -6,70 +6,61 @@ include 'config.php'; // Include your database connection
 
 $notification = "";
 
-// Generate CSRF token for the form
-$csrf_token = generate_csrf_token();
-
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        $notification = "CSRF token validation failed. Please try again.";
-        log_activity(null, 'CSRF Attack Attempt', 'Invalid CSRF token on registration submission.');
+    $username = htmlspecialchars($_POST['username']);
+    $email = htmlspecialchars($_POST['email']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    // Basic validation
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+        $notification = "All fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $notification = "Invalid email format.";
+    } elseif ($password !== $confirm_password) {
+        $notification = "Passwords do not match.";
+    } elseif (strlen($password) < 6) {
+        $notification = "Password must be at least 6 characters long.";
     } else {
-        $username = htmlspecialchars($_POST['username']);
-        $email = htmlspecialchars($_POST['email']);
-        $password = $_POST['password'];
-        $confirm_password = $_POST['confirm_password'];
+        // Check if username or email already exists
+        $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
 
-        // Basic validation
-        if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-            $notification = "All fields are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $notification = "Invalid email format.";
-        } elseif ($password !== $confirm_password) {
-            $notification = "Passwords do not match.";
-        } elseif (strlen($password) < 6) {
-            $notification = "Password must be at least 6 characters long.";
+        if ($existing_user) {
+            $notification = "Username or Email already exists.";
         } else {
-            // Check if username or email already exists
-            $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
+            // Handle avatar upload
+            $avatar_path = null;
+            if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
+                $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+                $file_extension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
 
-            if ($existing_user) {
-                $notification = "Username or Email already exists.";
-            } else {
-                // Handle avatar upload
-                $avatar_path = null;
-                if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] == 0) {
-                    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
-                    $file_extension = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-
-                    if (in_array($file_extension, $allowed_extensions)) {
-                        $avatar_dir = 'uploads/avatars/';
-                        if (!is_dir($avatar_dir)) {
-                            mkdir($avatar_dir, 0777, true);
-                        }
-                        $avatar_filename = uniqid('avatar_', true) . '.' . $file_extension;
-                        $avatar_path = $avatar_dir . $avatar_filename;
-
-                        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
-                            $notification = "Error uploading avatar.";
-                            $avatar_path = null;
-                        }
-                    } else {
-                        $notification = "Invalid file type for avatar. Only JPG, PNG, and GIF are allowed.";
+                if (in_array($file_extension, $allowed_extensions)) {
+                    $avatar_dir = 'uploads/avatars/';
+                    if (!is_dir($avatar_dir)) {
+                        mkdir($avatar_dir, 0777, true);
                     }
-                }
+                    $avatar_filename = uniqid('avatar_', true) . '.' . $file_extension;
+                    $avatar_path = $avatar_dir . $avatar_filename;
 
-                // Hash password
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-                // Insert new user
-                $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin, avatar) VALUES (?, ?, ?, 0, ?)", [$username, $email, $hashed_password, $avatar_path], "ssss");
-
-                if ($insert_id) {
-                    $notification = "Registration successful! You can now log in.";
+                    if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
+                        $notification = "Error uploading avatar.";
+                        $avatar_path = null;
+                    }
                 } else {
-                    $notification = "Error: " . $db->getConnection()->error;
+                    $notification = "Invalid file type for avatar. Only JPG, PNG, and GIF are allowed.";
                 }
+            }
+
+            // Hash password
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            // Insert new user
+            $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin, avatar) VALUES (?, ?, ?, 0, ?)", [$username, $email, $hashed_password, $avatar_path], "ssss");
+
+            if ($insert_id) {
+                $notification = "Registration successful! You can now log in.";
+            } else {
+                $notification = "Error: " . $db->getConnection()->error;
             }
         }
     }
@@ -98,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="alert alert-info text-center"><?= $notification ?></div>
                             <?php endif; ?>
                             <form action="register.php" method="post" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                                 <div class="mb-3">
                                     <label for="username" class="form-label">Username</label>
                                     <input type="text" id="username" name="username" class="form-control" required>
