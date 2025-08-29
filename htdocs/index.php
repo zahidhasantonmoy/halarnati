@@ -4,6 +4,7 @@
  * Handles entry creation, displays the latest entries, and includes search functionality.
  */
 include 'config.php';
+include 'includes/ImageHelper.php';
 
 $notification = "";
 
@@ -39,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
 
         $file = $_FILES['file'];
         $filePath = null;
+        $thumbnailPath = null;
 
         // Define allowed file types and max size
         $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
@@ -71,7 +73,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
                     $newFileName = uniqid('file_', true) . '.' . $fileExtension;
                     $filePath = $uploadsDir . $newFileName;
 
-                    if (!move_uploaded_file($file['tmp_name'], $filePath)) {
+                    if (move_uploaded_file($file['tmp_name'], $filePath)) {
+                        // If the uploaded file is an image, create a thumbnail
+                        if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                            $thumbnailDir = 'uploads/thumbnails/';
+                            if (!is_dir($thumbnailDir)) {
+                                mkdir($thumbnailDir, 0777, true);
+                            }
+                            $thumbnailPath = $thumbnailDir . $newFileName;
+                            ImageHelper::createThumbnail($filePath, $thumbnailPath);
+                        }
+                    } else {
                         $notification = "Error uploading file.";
                         $entry_type = 'text'; // Revert to text type if file upload fails
                     }
@@ -82,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
         $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
         // Insert entry into the database
-        $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $lockKey, $customSlug, $user_id, $category_id], "ssssssii");
+        $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id], "sssssssii");
 
         $notification = "Entry successfully added!";
         log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
@@ -262,6 +274,9 @@ include 'header.php';
                                 <?php if ($entry['type'] === 'code'): ?>
                                     <pre><code class="language-<?= htmlspecialchars($entry['language'] ?? 'markup') ?>"><?= htmlspecialchars($entry['text']) ?></code></pre>
                                 <?php elseif ($entry['type'] === 'file'): ?>
+                                    <?php if ($entry['thumbnail']): ?>
+                                        <img src="<?= htmlspecialchars($entry['thumbnail']) ?>" alt="Thumbnail" class="img-thumbnail mb-2">
+                                    <?php endif; ?>
                                     <p><strong>Attached File:</strong> <?= htmlspecialchars(basename($entry['file_path'] ?? '')) ?></p>
                                     <a href="download.php?file=<?= urlencode(basename($entry['file_path'] ?? '')) ?>" class="btn btn-secondary btn-sm">
                                         <i class="fas fa-download"></i> Download File

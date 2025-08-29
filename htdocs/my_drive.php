@@ -4,6 +4,7 @@
  * Allows uploading, viewing, and deleting personal files.
  */
 include 'config.php';
+include 'includes/ImageHelper.php';
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
@@ -27,9 +28,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_file'])) {
         }
 
         $filePath = $user_dir . '/' . $fileName;
+        $thumbnailPath = null;
 
         if (move_uploaded_file($file['tmp_name'], $filePath)) {
-            $insert_id = $db->insert("INSERT INTO user_files (user_id, file_name, file_path, file_size) VALUES (?, ?, ?, ?)", [$user_id, $fileName, $filePath, $fileSize], "issi");
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                $thumbnailDir = $user_dir . '/thumbnails/';
+                if (!is_dir($thumbnailDir)) {
+                    mkdir($thumbnailDir, 0777, true);
+                }
+                $thumbnailPath = $thumbnailDir . $fileName;
+                ImageHelper::createThumbnail($filePath, $thumbnailPath);
+            }
+
+            $insert_id = $db->insert("INSERT INTO user_files (user_id, file_name, file_path, file_size, thumbnail) VALUES (?, ?, ?, ?, ?)", [$user_id, $fileName, $filePath, $fileSize, $thumbnailPath], "isiss");
             if ($insert_id) {
                 $notification = "File uploaded successfully!";
             } else {
@@ -48,10 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_file'])) {
     $file_id = (int)$_POST['file_id'];
 
     // Fetch file path to delete the file from storage
-    $file_to_delete = $db->fetch("SELECT file_path FROM user_files WHERE id = ? AND user_id = ?", [$file_id, $user_id], "ii");
+    $file_to_delete = $db->fetch("SELECT file_path, thumbnail FROM user_files WHERE id = ? AND user_id = ?", [$file_id, $user_id], "ii");
 
-    if ($file_to_delete && file_exists($file_to_delete['file_path'])) {
-        unlink($file_to_delete['file_path']);
+    if ($file_to_delete) {
+        if ($file_to_delete['file_path'] && file_exists($file_to_delete['file_path'])) {
+            unlink($file_to_delete['file_path']);
+        }
+        if ($file_to_delete['thumbnail'] && file_exists($file_to_delete['thumbnail'])) {
+            unlink($file_to_delete['thumbnail']);
+        }
     }
 
     // Delete file from database
@@ -114,6 +131,7 @@ include 'header.php';
                     <table class="table table-hover">
                         <thead class="table-primary">
                         <tr>
+                            <th>Preview</th>
                             <th>File Name</th>
                             <th>File Size</th>
                             <th>Uploaded At</th>
@@ -123,6 +141,13 @@ include 'header.php';
                         <tbody>
                         <?php foreach ($user_files as $file): ?>
                             <tr>
+                                <td>
+                                    <?php if ($file['thumbnail']): ?>
+                                        <img src="<?= htmlspecialchars($file['thumbnail']) ?>" alt="Thumbnail" class="img-thumbnail" width="100">
+                                    <?php else: ?>
+                                        <i class="fas fa-file fa-3x text-muted"></i>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($file['file_name']) ?></td>
                                 <td><?= round($file['file_size'] / 1024, 2) ?> KB</td>
                                 <td><?= $file['uploaded_at'] ?></td>

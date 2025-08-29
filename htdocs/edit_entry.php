@@ -4,6 +4,7 @@
  * Only the owner of the entry can edit it.
  */
 include 'config.php';
+include 'includes/ImageHelper.php';
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
@@ -48,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
     }
 
     $filePath = $entry['file_path']; // Keep the old file path by default
+    $thumbnailPath = $entry['thumbnail']; // Keep the old thumbnail path by default
 
     // Define allowed file types and max size
     $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // Add more as needed
@@ -72,10 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
                 $notification = "Invalid file type. Only images (JPG, PNG, GIF), PDF, and text/document files are allowed.";
                 $entry_type = 'text'; // Revert to text type if file upload fails
             } else {
-                // Delete the old file if it exists
+                // Delete the old file and its thumbnail if they exist
                 if ($filePath && file_exists($filePath)) {
                     unlink($filePath);
                 }
+                if ($thumbnailPath && file_exists($thumbnailPath)) {
+                    unlink($thumbnailPath);
+                }
+
                 $uploadsDir = 'uploads/';
                 if (!is_dir($uploadsDir)) {
                     mkdir($uploadsDir, 0777, true);
@@ -84,7 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
                 $newFileName = uniqid('file_', true) . '.' . $fileExtension;
                 $filePath = $uploadsDir . $newFileName;
 
-                if (!move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
+                if (move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
+                    // If the uploaded file is an image, create a thumbnail
+                    if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                        $thumbnailDir = 'uploads/thumbnails/';
+                        if (!is_dir($thumbnailDir)) {
+                            mkdir($thumbnailDir, 0777, true);
+                        }
+                        $thumbnailPath = $thumbnailDir . $newFileName;
+                        ImageHelper::createThumbnail($filePath, $thumbnailPath);
+                    }
+                } else {
                     $notification = "Error uploading file.";
                     $entry_type = 'text'; // Revert to text type if file upload fails
                 }
@@ -93,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_entry'])) {
     }
 
     // Update the entry in the database
-    $affected_rows = $db->update("UPDATE entries SET title = ?, text = ?, type = ?, file_path = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?", [$title, $text, $entry_type, $filePath, $lockKey, $customSlug, $category_id, $entry_id, $user_id], "ssssssiii");
+    $affected_rows = $db->update("UPDATE entries SET title = ?, text = ?, type = ?, file_path = ?, thumbnail = ?, lock_key = ?, slug = ?, category_id = ? WHERE id = ? AND user_id = ?", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $category_id, $entry_id, $user_id], "sssssssiii");
     
     if ($affected_rows > 0) {
         $notification = "Entry updated successfully!";
