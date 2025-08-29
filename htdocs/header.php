@@ -1,5 +1,13 @@
 <?php
 include 'config.php'; // Include config for settings functions
+
+$user_avatar = null;
+if (isset($_SESSION['user_id'])) {
+    $user_data = $db->fetch("SELECT avatar FROM users WHERE id = ?", [$_SESSION['user_id']], "i");
+    if ($user_data && $user_data['avatar']) {
+        $user_avatar = $user_data['avatar'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,7 +36,14 @@ include 'config.php'; // Include config for settings functions
                     </li>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="user_panel.php"><i class="fas fa-user"></i> Welcome, <?= htmlspecialchars($_SESSION['username']) ?></a>
+                            <a class="nav-link" href="user_panel.php">
+                                <?php if ($user_avatar): ?>
+                                    <img src="<?= htmlspecialchars($user_avatar) ?>" alt="User Avatar" class="rounded-circle" width="25" height="25">
+                                <?php else: ?>
+                                    <i class="fas fa-user"></i>
+                                <?php endif; ?>
+                                Welcome, <?= htmlspecialchars($_SESSION['username']) ?>
+                            </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -50,4 +65,3 @@ include 'config.php'; // Include config for settings functions
             </div>
         </div>
     </nav>
-    
