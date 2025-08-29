@@ -11,7 +11,7 @@ $notification = "";
 // Handle form submission for creating a new entry
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $title = htmlspecialchars($_POST['title']);
-    $text = htmlspecialchars($_POST['text']);
+    $text = $_POST['text'];
     $language = htmlspecialchars($_POST['language'] ?? '');
     $category_id = (int)$_POST['category_id'];
     $is_markdown = isset($_POST['is_markdown']) ? 1 : 0;
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
     // Insert entry into the database
-    $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiii");
+    $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiis");
 
     $notification = "Entry successfully added!";
     log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
