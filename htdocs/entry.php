@@ -43,7 +43,7 @@ if ($entry['lock_key']) { // Only check if there's a lock key set
 $Parsedown = new Parsedown();
 
 // Fetch comments
-$comments = $db->fetchAll("SELECT * FROM comments WHERE entry_id = ? ORDER BY created_at DESC", [$entry['id']], "i");
+$comments = $db->fetchAll("SELECT c.*, u.username as mentioned_username FROM comments c LEFT JOIN users u ON c.user_id = u.id WHERE c.entry_id = ? ORDER BY c.created_at DESC", [$entry['id']], "i");
 
 // Social sharing URLs
 $entryUrl = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
@@ -140,7 +140,26 @@ include 'header.php';
                                     <li class="list-group-item">
                                         <strong><?= htmlspecialchars($comment['name']) ?></strong>
                                         <small class="text-muted"><?= $comment['created_at'] ?></small>
-                                        <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
+                                        <p>
+                                            <?php
+                                            $comment_text = htmlspecialchars($comment['comment']);
+                                            // Replace @mentions with links to user profiles
+                                            $comment_text = preg_replace_callback(
+                                                '/@([a-zA-Z0-9_]+)/',
+                                                function ($matches) use ($db) {
+                                                    $mentioned_username = $matches[1];
+                                                    $mentioned_user = $db->fetch("SELECT id FROM users WHERE username = ?", [$mentioned_username], "s");
+                                                    if ($mentioned_user) {
+                                                        return '<a href="profile.php?id=' . $mentioned_user['id'] . '">@' . htmlspecialchars($mentioned_username) . '</a>';
+                                                    } else {
+                                                        return '@' . htmlspecialchars($mentioned_username);
+                                                    }
+                                                },
+                                                $comment_text
+                                            );
+                                            echo nl2br($comment_text);
+                                            ?>
+                                        </p>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>
