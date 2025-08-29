@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: http://halarnati.free.nf/sitemap.php
