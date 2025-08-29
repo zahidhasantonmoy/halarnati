@@ -21,7 +21,7 @@ class Database {
         $this->conn = new mysqli($this->host, $this->user, $this->pass, $this->db, $this->port);
 
         if ($this->conn->connect_error) {
-            die("Connection failed: " . $this->conn->connect_error);
+            trigger_error("Connection failed: " . $this->conn->connect_error, E_USER_ERROR);
         }
     }
 
@@ -32,7 +32,7 @@ class Database {
     public function query($sql, $params = [], $types = "") {
         $stmt = $this->conn->prepare($sql);
         if ($stmt === false) {
-            die("Prepare failed: " . $this->conn->error);
+            trigger_error("Prepare failed: " . $this->conn->error, E_USER_ERROR);
         }
 
         if (!empty($params)) {
@@ -58,7 +58,7 @@ class Database {
     public function insert($sql, $params = [], $types = "") {
         $stmt = $this->conn->prepare($sql);
         if ($stmt === false) {
-            die("Prepare failed: " . $this->conn->error);
+            trigger_error("Prepare failed: " . $this->conn->error, E_USER_ERROR);
         }
 
         if (!empty($params)) {
@@ -74,7 +74,7 @@ class Database {
     public function update($sql, $params = [], $types = "") {
         $stmt = $this->conn->prepare($sql);
         if ($stmt === false) {
-            die("Prepare failed: " . $this->conn->error);
+            trigger_error("Prepare failed: " . $this->conn->error, E_USER_ERROR);
         }
 
         if (!empty($params)) {
@@ -90,7 +90,7 @@ class Database {
     public function delete($sql, $params = [], $types = "") {
         $stmt = $this->conn->prepare($sql);
         if ($stmt === false) {
-            die("Prepare failed: " . $this->conn->error);
+            trigger_error("Prepare failed: " . $this->conn->error, E_USER_ERROR);
         }
 
         if (!empty($params)) {

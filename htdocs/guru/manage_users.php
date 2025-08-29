@@ -6,202 +6,104 @@
 include '../config.php';
 
 // Redirect if not logged in or not an admin
-<?php
-/**
- * Admin page for managing users.
- * Allows adding, editing, and deleting users.
- */
-include '../config.php';
-
-// Redirect if not logged in or not an admin
 if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     header("Location: ../login.php");
     exit;
 }
 
+// Generate CSRF token
+$csrf_token = generate_csrf_token();
+
 $notification = "";
 
-// Handle Add/Edit User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_user']) || isset($_POST['edit_user_modal']))) {
-    $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
-    $username = htmlspecialchars($_POST['username']);
-    $email = htmlspecialchars($_POST['email']);
-    $password = $_POST['password'];
-    $is_admin = isset($_POST['is_admin']) ? 1 : 0;
-
-    if (empty($username) || empty($email)) {
-        $notification = "Username and Email are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $notification = "Invalid email format.";
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
+        $notification = "CSRF token validation failed. Please try again.";
+        log_activity(isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null, 'CSRF Attack Attempt', 'Invalid CSRF token on user management page.');
     } else {
-        if ($user_id) { // Edit existing user
-            $sql = "UPDATE users SET username = ?, email = ?, is_admin = ?";
-            $params = "ssi";
-            $bind_values = [$username, $email, $is_admin];
+        // Handle Add/Edit User
+        if (isset($_POST['add_user']) || isset($_POST['edit_user_modal'])) {
+            $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
+            $username = htmlspecialchars($_POST['username']);
+            $email = htmlspecialchars($_POST['email']);
+            $password = $_POST['password'];
+            $is_admin = isset($_POST['is_admin']) ? 1 : 0;
 
-            if (!empty($password)) {
-                $sql .= ", password = ?";
-                $params .= "s";
-                $bind_values[] = password_hash($password, PASSWORD_DEFAULT);
-            }
-            $sql .= " WHERE id = ?";
-            $params .= "i";
-            $bind_values[] = $user_id;
+            if (empty($username) || empty($email)) {
+                $notification = "Username and Email are required.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $notification = "Invalid email format.";
+            } else {
+                if ($user_id) { // Edit existing user
+                    $sql = "UPDATE users SET username = ?, email = ?, is_admin = ?";
+                    $params = "ssi";
+                    $bind_values = [$username, $email, $is_admin];
 
-            $affected_rows = $db->update($sql, $bind_values, $params);
-            if ($affected_rows > 0) {
-                $notification = "User updated successfully.";
-                log_activity($_SESSION['user_id'], 'User Updated', 'User profile updated for: ' . $username . ' (ID: ' . $user_id . ')');
-            } else {
-                $notification = "Error updating user: " . $db->getConnection()->error;
-            }
-        } else { // Add new user
-            if (empty($password)) {
-                $notification = "Password is required for new users.";
-            } else {
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, ?)", [$username, $email, $hashed_password, $is_admin], "sssi");
-                if ($insert_id) {
-                    $notification = "User added successfully.";
-                    log_activity($_SESSION['user_id'], 'User Added', 'New user created: ' . $username);
-                } else {
-                    $notification = "Error adding user: " . $db->getConnection()->error;
+                    if (!empty($password)) {
+                        $sql .= ", password = ?";
+                        $params .= "s";
+                        $bind_values[] = password_hash($password, PASSWORD_DEFAULT);
+                    }
+                    $sql .= " WHERE id = ?";
+                    $params .= "i";
+                    $bind_values[] = $user_id;
+
+                    $affected_rows = $db->update($sql, $bind_values, $params);
+                    if ($affected_rows > 0) {
+                        $notification = "User updated successfully.";
+                        log_activity($_SESSION['user_id'], 'User Updated', 'User profile updated for: ' . $username . ' (ID: ' . $user_id . ')');
+                    } else {
+                        $notification = "Error updating user: " . $db->getConnection()->error;
+                    }
+                } else { // Add new user
+                    if (empty($password)) {
+                        $notification = "Password is required for new users.";
+                    } else {
+                        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                        $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, ?)", [$username, $email, $hashed_password, $is_admin], "sssi");
+                        if ($insert_id) {
+                            $notification = "User added successfully.";
+                            log_activity($_SESSION['user_id'], 'User Added', 'New user created: ' . $username);
+                        } else {
+                            $notification = "Error adding user: " . $db->getConnection()->error;
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-// Handle Delete User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
-    $user_id_to_delete = (int)$_POST['user_id'];
+        // Handle Delete User
+        if (isset($_POST['delete_user'])) {
+            $user_id_to_delete = (int)$_POST['user_id'];
 
-    // Fetch username before deleting for logging purposes
-    $result_username = $db->fetch("SELECT username FROM users WHERE id = ?", [$user_id_to_delete], "i");
-    $username_to_delete = $result_username['username'] ?? 'Unknown User';
+            // Fetch username before deleting for logging purposes
+            $result_username = $db->fetch("SELECT username FROM users WHERE id = ?", [$user_id_to_delete], "i");
+            $username_to_delete = $result_username['username'] ?? 'Unknown User';
 
-    // Prevent admin from deleting themselves
-    if ($user_id_to_delete === $_SESSION['user_id']) {
-        $notification = "You cannot delete your own admin account.";
-    } else {
-        // Set user_id to NULL for entries owned by this user
-        $db->update("UPDATE entries SET user_id = NULL WHERE user_id = ?", [$user_id_to_delete], "i");
+            // Prevent admin from deleting themselves
+            if ($user_id_to_delete === $_SESSION['user_id']) {
+                $notification = "You cannot delete your own admin account.";
+            } else {
+                // Set user_id to NULL for entries owned by this user
+                $db->update("UPDATE entries SET user_id = NULL WHERE user_id = ?", [$user_id_to_delete], "i");
 
-        // Delete user
-        $affected_rows = $db->delete("DELETE FROM users WHERE id = ?", [$user_id_to_delete], "i");
-        if ($affected_rows > 0) {
-            $notification = "User deleted successfully.";
-            log_activity($_SESSION['user_id'], 'User Deleted', 'User deleted: ' . $username_to_delete . ' (ID: ' . $user_id_to_delete . ')');
-        } else {
-            $notification = "Error deleting user: " . $db->getConnection()->error;
+                // Delete user
+                $affected_rows = $db->delete("DELETE FROM users WHERE id = ?", [$user_id_to_delete], "i");
+                if ($affected_rows > 0) {
+                    $notification = "User deleted successfully.";
+                    log_activity($_SESSION['user_id'], 'User Deleted', 'User deleted: ' . $username_to_delete . ' (ID: ' . $user_id_to_delete . ')');
+                } else {
+                    $notification = "Error deleting user: " . $db->getConnection()->error;
+                }
+            }
         }
     }
 }
 
 // Fetch all users
 $users = $db->fetchAll("SELECT id, username, email, created_at, is_admin FROM users ORDER BY created_at DESC");
-
-include '../header.php'; // Use new header
-?>
-    header("Location: ../login.php");
-    exit;
-}
-
-$notification = "";
-
-// Handle Add/Edit User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_user']) || isset($_POST['edit_user_modal']))) {
-    $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
-    $username = htmlspecialchars($_POST['username']);
-    $email = htmlspecialchars($_POST['email']);
-    $password = $_POST['password'];
-    $is_admin = isset($_POST['is_admin']) ? 1 : 0;
-
-    if (empty($username) || empty($email)) {
-        $notification = "Username and Email are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $notification = "Invalid email format.";
-    } else {
-        if ($user_id) { // Edit existing user
-            $sql = "UPDATE users SET username = ?, email = ?, is_admin = ?";
-            $params = "ssi";
-            $bind_values = [$username, $email, $is_admin];
-
-            if (!empty($password)) {
-                $sql .= ", password = ?";
-                $params .= "s";
-                $bind_values[] = password_hash($password, PASSWORD_DEFAULT);
-            }
-            $sql .= " WHERE id = ?";
-            $params .= "i";
-            $bind_values[] = $user_id;
-
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param($params, ...$bind_values);
-            if ($stmt->execute()) {
-                $notification = "User updated successfully.";
-                log_activity($_SESSION['user_id'], 'User Updated', 'User profile updated for: ' . $username . ' (ID: ' . $user_id . ')');
-            } else {
-                $notification = "Error updating user: " . $stmt->error;
-            }
-        } else { // Add new user
-            if (empty($password)) {
-                $notification = "Password is required for new users.";
-            } else {
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("sssi", $username, $email, $hashed_password, $is_admin);
-                if ($stmt->execute()) {
-                    $notification = "User added successfully.";
-                    log_activity($_SESSION['user_id'], 'User Added', 'New user created: ' . $username);
-                } else {
-                    $notification = "Error adding user: " . $stmt->error;
-                }
-            }
-        }
-        $stmt->close();
-    }
-}
-
-// Handle Delete User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
-    $user_id_to_delete = (int)$_POST['user_id'];
-
-    // Fetch username before deleting for logging purposes
-    $stmt_fetch_username = $conn->prepare("SELECT username FROM users WHERE id = ?");
-    $stmt_fetch_username->bind_param("i", $user_id_to_delete);
-    $stmt_fetch_username->execute();
-    $result_username = $stmt_fetch_username->get_result()->fetch_assoc();
-    $username_to_delete = $result_username['username'] ?? 'Unknown User';
-    $stmt_fetch_username->close();
-
-    // Prevent admin from deleting themselves
-    if ($user_id_to_delete === $_SESSION['user_id']) {
-        $notification = "You cannot delete your own admin account.";
-    } else {
-        // Set user_id to NULL for entries owned by this user
-        $stmt = $conn->prepare("UPDATE entries SET user_id = NULL WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id_to_delete);
-        $stmt->execute();
-        $stmt->close();
-
-        // Delete user
-        $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-        $stmt->bind_param("i", $user_id_to_delete);
-        if ($stmt->execute()) {
-            $notification = "User deleted successfully.";
-            log_activity($_SESSION['user_id'], 'User Deleted', 'User deleted: ' . $username_to_delete . ' (ID: ' . $user_id_to_delete . ')');
-        } else {
-            $notification = "Error deleting user: " . $stmt->error;
-        }
-        $stmt->close();
-    }
-}
-
-// Fetch all users
-$users_query = "SELECT id, username, email, created_at, is_admin FROM users ORDER BY created_at DESC";
-$users_result = $conn->query($users_query);
-$users = $users_result->fetch_all(MYSQLI_ASSOC);
 
 include '../header.php'; // Use new header
 ?>
@@ -238,6 +140,7 @@ include '../header.php'; // Use new header
                     </div>
                     <div class="card-body">
                         <form action="manage_users.php" method="post">
+                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
                                 <input type="text" id="username" name="username" class="form-control" required>
@@ -293,6 +196,7 @@ include '../header.php'; // Use new header
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user? All their entries will become anonymous.');">
+                                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                                         <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                         <button type="submit" name="delete_user" class="btn btn-danger btn-sm">
                                             <i class="fas fa-trash"></i> Delete
@@ -324,6 +228,7 @@ include '../header.php'; // Use new header
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
             <input type="hidden" name="user_id" id="edit-user-id">
             <div class="modal-content">
                 <div class="modal-header">

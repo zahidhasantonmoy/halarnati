@@ -7,14 +7,14 @@ include 'config.php';
 $slug = isset($_GET['slug']) ? htmlspecialchars($_GET['slug']) : null;
 
 if (!$slug) {
-    die("Category not found.");
+    trigger_error("Category not found.", E_USER_ERROR);
 }
 
 // Fetch category details
 $category = $db->fetch("SELECT * FROM categories WHERE slug = ?", [$slug], "s");
 
 if (!$category) {
-    die("Category not found.");
+    trigger_error("Category not found.", E_USER_ERROR);
 }
 
 // Pagination functionality
@@ -50,9 +50,11 @@ include 'header.php';
             <div class="container py-4">
                 <h1 class="text-center mb-4">Category: <?= htmlspecialchars($category['name']) ?></h1>
 
-                <?php if (empty($entries)): ?>
+                <?php if (empty($entries)):
+                ?>
                     <div class="alert alert-warning text-center">No entries found in this category.</div>
-                <?php else: ?>
+                <?php else:
+                ?>
                     <?php foreach ($entries as $entry): ?>
                         <div class="card entry-card mb-3">
                             <div class="card-body">

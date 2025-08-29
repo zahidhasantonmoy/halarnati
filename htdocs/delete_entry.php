@@ -15,14 +15,14 @@ $user_id = $_SESSION['user_id'];
 $entry_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
 if (!$entry_id) {
-    die("Invalid entry ID.");
+    trigger_error("Invalid entry ID.", E_USER_ERROR);
 }
 
 // Fetch entry to get file_path before deleting
 $entry = $db->fetch("SELECT file_path FROM entries WHERE id = ? AND user_id = ?", [$entry_id, $user_id], "ii");
 
 if (!$entry) {
-    die("Entry not found or you don't have permission to delete this entry.");
+    trigger_error("Entry not found or you don't have permission to delete this entry.", E_USER_ERROR);
 }
 
 // Delete associated file if it exists
@@ -37,6 +37,6 @@ if ($affected_rows > 0) {
     header("Location: my_entries.php?status=deleted");
     exit;
 } else {
-    die("Error deleting entry.");
+    trigger_error("Error deleting entry.", E_USER_ERROR);
 }
 ?>

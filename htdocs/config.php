@@ -82,7 +82,7 @@ function get_setting($key, $default = null) {
 if (!function_exists('set_setting')) {
 /**
  * Sets a setting value in the database.
- * Inserts if the key does not exist, updates if it does.
+ * Inserts if the key does not exist, updates if it does..
  *
  * @param string $key The setting key.
  * @param mixed $value The setting value.
@@ -103,6 +103,37 @@ function set_setting($key, $value) {
         $affected_rows = $db->insert($sql, [$key, $value], "ss");
     }
     return $affected_rows > 0;
+}
+}
+
+if (!function_exists('generate_csrf_token')) {
+/**
+ * Generates a CSRF token and stores it in the session.
+ *
+ * @return string The generated CSRF token.
+ */
+function generate_csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); // Generate a 32-byte (64-char) random token
+    }
+    return $_SESSION['csrf_token'];
+}
+}
+
+if (!function_exists('validate_csrf_token')) {
+/**
+ * Validates a CSRF token against the one stored in the session.
+ *
+ * @param string $token The token to validate.
+ * @return bool True if the token is valid, false otherwise.
+ */
+function validate_csrf_token($token) {
+    if (isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token)) {
+        // Token is valid, consume it to prevent replay attacks
+        unset($_SESSION['csrf_token']);
+        return true;
+    }
+    return false;
 }
 }
 ?>

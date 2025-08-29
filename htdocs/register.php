@@ -6,41 +6,51 @@ include 'config.php'; // Include your database connection
 
 $notification = "";
 
+// Generate CSRF token for the form
+$csrf_token = generate_csrf_token();
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = htmlspecialchars($_POST['username']);
-    $email = htmlspecialchars($_POST['email']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-
-    // Basic validation
-    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-        $notification = "All fields are required.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $notification = "Invalid email format.";
-    } elseif ($password !== $confirm_password) {
-        $notification = "Passwords do not match.";
-    } elseif (strlen($password) < 6) {
-        $notification = "Password must be at least 6 characters long.";
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
+        $notification = "CSRF token validation failed. Please try again.";
+        log_activity(null, 'CSRF Attack Attempt', 'Invalid CSRF token on registration submission.');
+        // For now, we'll just set notification and let the page reload
     } else {
-        // Check if username or email already exists
-        $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
+        $username = htmlspecialchars($_POST['username']);
+        $email = htmlspecialchars($_POST['email']);
+        $password = $_POST['password'];
+        $confirm_password = $_POST['confirm_password'];
 
-        if ($existing_user) {
-            $notification = "Username or Email already exists.";
+        // Basic validation
+        if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+            $notification = "All fields are required.";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $notification = "Invalid email format.";
+        } elseif ($password !== $confirm_password) {
+            $notification = "Passwords do not match.";
+        } elseif (strlen($password) < 6) {
+            $notification = "Password must be at least 6 characters long.";
         } else {
-            // Hash password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            // Check if username or email already exists
+            $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
 
-            // Insert new user
-            $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)", [$username, $email, $hashed_password], "sss");
-
-            if ($insert_id) {
-                $notification = "Registration successful! You can now log in.";
-                // Optionally redirect to login page
-                // header("Location: login.php");
-                // exit;
+            if ($existing_user) {
+                $notification = "Username or Email already exists.";
             } else {
-                $notification = "Error: " . $db->getConnection()->error;
+                // Hash password
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+                // Insert new user
+                $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 0)", [$username, $email, $hashed_password], "sss");
+
+                if ($insert_id) {
+                    $notification = "Registration successful! You can now log in.";
+                    // Optionally redirect to login page
+                    // header("Location: login.php");
+                    // exit;
+                } else {
+                    $notification = "Error: " . $db->getConnection()->error;
+                }
             }
         }
     }

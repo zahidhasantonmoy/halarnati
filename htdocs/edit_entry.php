@@ -16,14 +16,14 @@ $entry_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $notification = "";
 
 if (!$entry_id) {
-    die("Invalid entry ID.");
+    trigger_error("Invalid entry ID.", E_USER_ERROR);
 }
 
 // Fetch the entry from the database
 $entry = $db->fetch("SELECT * FROM entries WHERE id = ? AND user_id = ?", [$entry_id, $user_id], "ii");
 
 if (!$entry) {
-    die("Entry not found or you don't have permission to edit this entry.");
+    trigger_error("Entry not found or you don't have permission to edit this entry.", E_USER_ERROR);
 }
 
 // Fetch all categories

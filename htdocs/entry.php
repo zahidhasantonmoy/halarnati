@@ -17,11 +17,11 @@ if ($id) {
 }
 
 if (!$entry) {
-    die("Entry not found.");
+    trigger_error("Entry not found.", E_USER_ERROR);
 }
 
 // Increment view count
-$db->update("UPDATE entries SET view_count = view_count + 1 WHERE id = ?", [$id], "i");
+$db->update("UPDATE entries SET view_count = view_count + 1 WHERE id = ?", [$entry['id']], "i");
 
 // Handle unlock request
 $isUnlocked = false;
