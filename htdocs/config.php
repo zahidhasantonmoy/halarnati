@@ -82,8 +82,7 @@ function get_setting($key, $default = null) {
 if (!function_exists('set_setting')) {
 /**
  * Sets a setting value in the database.
- * Inserts if the key does not exist, updates if it does..
- *
+ * Inserts if the key does not exist, updates if it does..n *
  * @param string $key The setting key.
  * @param mixed $value The setting value.
  * @return bool True on success, false on failure.

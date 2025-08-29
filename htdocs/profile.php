@@ -16,8 +16,8 @@ $notification = "";
 // Fetch user data
 $user = $db->fetch("SELECT username, email, avatar FROM users WHERE id = ?", [$user_id], "i");
 
-if (!$user) {
-    // User not found, something is wrong with session
+if (!$user || !is_array($user)) {
+    // User not found or $user is not an array, something is wrong with session or database fetch
     session_unset();
     session_destroy();
     header("Location: login.php");
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
 
                 if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
                     // Delete old avatar if it exists
-                    if ($user['avatar'] && file_exists($user['avatar'])) {
+                    if (isset($user['avatar']) && is_string($user['avatar']) && file_exists($user['avatar'])) {
                         unlink($user['avatar']);
                     }
                     $update_sql .= ", avatar = ?";
@@ -136,7 +136,7 @@ include 'header.php';
                     <div class="card-body">
                         <form action="profile.php" method="post" enctype="multipart/form-data">
                             <div class="mb-3 text-center">
-                                <?php if ($user['avatar']): ?>
+                                <?php if (isset($user['avatar']) && is_string($user['avatar']) && !empty($user['avatar'])): ?>
                                     <img src="<?= htmlspecialchars($user['avatar']) ?>" alt="User Avatar" class="img-thumbnail rounded-circle" width="150">
                                 <?php else: ?>
                                     <i class="fas fa-user-circle fa-8x text-muted"></i>
