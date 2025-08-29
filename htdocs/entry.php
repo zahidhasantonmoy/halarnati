@@ -4,6 +4,7 @@
  * Handles unlocking of password-protected entries.
  */
 include 'config.php'; // config.php now initializes $db
+include 'includes/Parsedown.php';
 
 // Get entry ID or slug from URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -38,6 +39,8 @@ if ($entry['lock_key']) { // Only check if there's a lock key set
 } else { // No lock key, so it's always unlocked
     $isUnlocked = true;
 }
+
+$Parsedown = new Parsedown();
 
 include 'header.php';
 ?>
@@ -88,7 +91,11 @@ include 'header.php';
                                         <i class="fas fa-download"></i> Download File
                                     </a>
                                 <?php else: // Default to text ?>
-                                    <p><?= nl2br(htmlspecialchars($entry['text'])) ?></p>
+                                    <?php if ($entry['is_markdown']): ?>
+                                        <?= $Parsedown->text($entry['text']) ?>
+                                    <?php else: ?>
+                                        <p><?= nl2br(htmlspecialchars($entry['text'])) ?></p>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                             <button class="btn btn-info mt-2" onclick="copyToClipboard('entry-content-display')">

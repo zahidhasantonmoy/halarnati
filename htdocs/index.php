@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
         $text = htmlspecialchars($_POST['text']);
         $language = htmlspecialchars($_POST['language'] ?? '');
         $category_id = (int)$_POST['category_id'];
+        $is_markdown = isset($_POST['is_markdown']) ? 1 : 0;
         $entry_type = 'text'; // Default to text
 
         if (!empty($_FILES['file']['name'])) {
@@ -94,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
         $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
         // Insert entry into the database
-        $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id], "sssssssii");
+        $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiii");
 
         $notification = "Entry successfully added!";
         log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
@@ -200,6 +201,12 @@ include 'header.php';
                     <div class="mb-3">
                         <label for="text" class="form-label">Content (Text or Code)</label>
                         <textarea id="text" name="text" rows="8" class="form-control"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" value="1" id="is_markdown" name="is_markdown">
+                        <label class="form-check-label" for="is_markdown">
+                            Enable Markdown
+                        </label>
                     </div>
                     <div class="mb-3">
                         <label for="lock_key" class="form-label">Password (Optional)</label>
