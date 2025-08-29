@@ -42,6 +42,9 @@ if ($entry['lock_key']) { // Only check if there's a lock key set
 
 $Parsedown = new Parsedown();
 
+// Fetch comments
+$comments = $db->fetchAll("SELECT * FROM comments WHERE entry_id = ? ORDER BY created_at DESC", [$entry['id']], "i");
+
 // Social sharing URLs
 $entryUrl = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 $twitterShareUrl = "https://twitter.com/intent/tweet?url=" . urlencode($entryUrl) . "&text=" . urlencode($entry['title']);
@@ -117,6 +120,51 @@ include 'header.php';
                         </div>
 
                         <a href="index.php" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left"></i> Back to Home</a>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-comments"></i> Comments
+                    </div>
+                    <div class="card-body">
+                        <?php if (empty($comments)): ?>
+                            <p>No comments yet.</p>
+                        <?php else: ?>
+                            <ul class="list-group list-group-flush">
+                                <?php foreach ($comments as $comment): ?>
+                                    <li class="list-group-item">
+                                        <strong><?= htmlspecialchars($comment['name']) ?></strong>
+                                        <small class="text-muted"><?= $comment['created_at'] ?></small>
+                                        <p><?= nl2br(htmlspecialchars($comment['comment'])) ?></p>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-comment-dots"></i> Leave a Comment
+                    </div>
+                    <div class="card-body">
+                        <form action="add_comment.php" method="post">
+                            <input type="hidden" name="entry_id" value="<?= $entry['id'] ?>">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" id="name" name="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" id="email" name="email" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">Comment</label>
+                                <textarea id="comment" name="comment" rows="4" class="form-control" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
                     </div>
                 </div>
             </div>

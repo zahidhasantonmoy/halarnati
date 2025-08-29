@@ -191,7 +191,7 @@ if (!empty($whereClauses)) {
     $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
 }
 
-$totalEntriesResult = $db->fetch($countQuery, array_slice($params, 0, count($params) - 2), substr($types, 0, -2));
+$totalEntriesResult = $db->fetch($countQuery, array_slice($params, 0, count($params) - 2), substr($types, 0, strlen($types) - 2));
 $totalEntries = $totalEntriesResult['total'] ?? 0;
 $totalPages = ceil($totalEntries / $limit);
 
