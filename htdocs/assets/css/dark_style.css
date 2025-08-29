@@ -1,0 +1,79 @@
+body.dark-mode {
+    background: linear-gradient(135deg, #263238, #37474F);
+    color: #ECEFF1;
+}
+
+.dark-mode .navbar {
+    background-color: #212121;
+}
+
+.dark-mode .main-content-area {
+    background-color: #37474F;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .sidebar-left,
+.dark-mode .sidebar-right {
+    background-color: #263238;
+}
+
+.dark-mode .card {
+    background: #455A64;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .card-header {
+    background: linear-gradient(45deg, #37474F, #263238);
+}
+
+.dark-mode .form-control {
+    background-color: #546E7A;
+    color: #ECEFF1;
+    border-color: #78909C;
+}
+
+.dark-mode .form-control:focus {
+    background-color: #546E7A;
+    color: #ECEFF1;
+    border-color: #B0BEC5;
+    box-shadow: 0 0 0 0.25rem rgba(176, 190, 197, 0.25);
+}
+
+.dark-mode .entry-card {
+    background: #455A64;
+}
+
+.dark-mode .entry-title {
+    color: #ECEFF1;
+}
+
+.dark-mode .entry-meta {
+    color: #B0BEC5;
+}
+
+.dark-mode .entry-content {
+    background-color: #37474F;
+    border-color: #546E7A;
+}
+
+.dark-mode .footer {
+    background-color: #212121;
+}
+
+.dark-mode .list-group-item {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ECEFF1;
+}
+
+.dark-mode .list-group-item a {
+    color: #ECEFF1;
+}
+
+.dark-mode .list-group-item a:hover {
+    color: #B0BEC5;
+}
+
+.dark-mode .text-muted {
+    color: #B0BEC5 !important;
+}

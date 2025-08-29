@@ -1,7 +1,10 @@
-    <footer class="footer mt-auto py-3 bg-dark text-white">
+<footer class="footer mt-auto py-3 bg-dark text-white">
         <div class="container text-center">
             <span class="text-muted">&copy; <?= date("Y") ?> Halarnati | All rights reserved.</span>
             <p class="mb-0 mt-2">Total Views: <span id="total-views">Loading...</span></p>
+            <div class="mt-2">
+                <button id="theme-switcher" class="btn btn-sm btn-outline-light"><i class="fas fa-moon"></i></button>
+            </div>
         </div>
     </footer>
 
@@ -28,8 +31,36 @@
             }
         }
 
+        // Theme switcher logic
+        const themeSwitcher = document.getElementById('theme-switcher');
+        const body = document.body;
+
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeSwitcher.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                body.classList.remove('dark-mode');
+                themeSwitcher.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        };
+
+        const toggleTheme = () => {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        };
+
+        themeSwitcher.addEventListener('click', toggleTheme);
+
+        // Apply saved theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+
         // Fetch total views (will be implemented in index.php)
-        // This is a placeholder for now
         document.addEventListener('DOMContentLoaded', () => {
             // In a real scenario, you'd fetch this via AJAX or embed it directly
             // For now, it will be updated by PHP in index.php
