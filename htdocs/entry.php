@@ -51,6 +51,10 @@ $twitterShareUrl = "https://twitter.com/intent/tweet?url=" . urlencode($entryUrl
 $facebookShareUrl = "https://www.facebook.com/sharer/sharer.php?u=" . urlencode($entryUrl);
 $redditShareUrl = "https://www.reddit.com/submit?url=" . urlencode($entryUrl) . "&title=" . urlencode($entry['title']);
 
+// SEO Meta Tags
+$page_description = substr(strip_tags($entry['text']), 0, 160); // First 160 characters of the text
+$page_keywords = $entry['title'] . ", " . $entry['type'] . ", " . ($entry['language'] ?? ''); // Example keywords
+
 include 'header.php';
 ?>
 
