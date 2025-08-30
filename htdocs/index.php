@@ -3,8 +3,21 @@
  * The main page of the application.
  * Handles entry creation, displays the latest entries, and includes search functionality.
  */
+// Enable comprehensive error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+
+// Add debug output at the very beginning
+echo "<!-- DEBUG: Starting index.php execution -->
+";
+
 include 'config.php';
 include 'includes/ImageHelper.php';
+
+echo "<!-- DEBUG: Included config.php and ImageHelper.php -->
+";
 
 // Database connection test - only show for admin users
 if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']) {
@@ -53,11 +66,18 @@ if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']) {
 ";
 }
 
+echo "<!-- DEBUG: Passed database test section -->
+";
+
 
 $notification = "";
 
+echo "<!-- DEBUG: Starting form handling section -->\n";
+
 // Handle form submission for creating a new entry
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
+    echo "<!-- DEBUG: Processing form submission -->\n";
+    
     $title = htmlspecialchars($_POST['title']);
     $text = $_POST['text'];
     $language = htmlspecialchars($_POST['language'] ?? '');
@@ -90,6 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
 
     // Handle file upload
     if ($entry_type === 'file' && $file['name']) {
+        echo "<!-- DEBUG: Processing file upload -->\n";
+        
         // Validate file size
         if ($file['size'] > $maxFileSize) {
             $notification = "File size exceeds the maximum allowed limit (5MB).";
@@ -135,13 +157,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : NULL;
 
     // Insert entry into the database
+    echo "<!-- DEBUG: Inserting entry into database -->\n";
     $insert_id = $db->insert("INSERT INTO entries (title, text, type, file_path, thumbnail, lock_key, slug, user_id, category_id, is_markdown, created_at, view_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)", [$title, $text, $entry_type, $filePath, $thumbnailPath, $lockKey, $customSlug, $user_id, $category_id, $is_markdown], "sssssssiis");
 
     $notification = "Entry successfully added!";
     log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
 }
 
+echo "<!-- DEBUG: Finished form handling section -->\n";
+
 // Handle search functionality
+echo "<!-- DEBUG: Starting search functionality -->\n";
 $searchResults = [];
 if (isset($_GET['search_query'])) {
     $searchQuery = htmlspecialchars($_GET['search_query']);
@@ -149,7 +175,10 @@ if (isset($_GET['search_query'])) {
     $searchResults = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC", [$likeQuery, $likeQuery], "ss");
 }
 
+echo "<!-- DEBUG: Finished search functionality -->\n";
+
 // Pagination functionality
+echo "<!-- DEBUG: Starting pagination functionality -->\n";
 $limit = 10; // Number of entries per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
@@ -166,10 +195,15 @@ $totalPages = ceil($totalEntries / $limit);
 $totalViewsResult = $db->fetch("SELECT SUM(view_count) AS total_views FROM entries");
 $totalViews = $totalViewsResult['total_views'] ?? 0;
 
+echo "<!-- DEBUG: Finished pagination functionality -->\n";
+
 // Fetch all categories
+echo "<!-- DEBUG: Starting category fetch -->\n";
 $categories = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name ASC");
+echo "<!-- DEBUG: Finished category fetch -->\n";
 
 include 'header.php';
+echo "<!-- DEBUG: Included header.php -->\n";
 ?>
 
 // Handle search functionality
@@ -203,9 +237,13 @@ $categories = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name
 include 'header.php';
 ?>
 
-<div class="main-wrapper"><div class="row g-0">
-            <!-- Left Sidebar -->
+<div class="main-wrapper">
+    <!-- DEBUG: Starting main wrapper -->
+    <div class="row g-0">
+        <!-- DEBUG: Starting row -->
+        <!-- Left Sidebar -->
         <div class="col-12 col-lg-2 d-none d-lg-block sidebar-left">
+            <!-- DEBUG: Starting left sidebar -->
             <div class="p-3">
                 <h5>Navigation</h5>
                 <ul class="list-group list-group-flush">
@@ -214,9 +252,12 @@ include 'header.php';
                     <li class="list-group-item bg-transparent border-0"><a href="#" class="text-decoration-none text-white"><i class="fas fa-search me-2"></i> Search</a></li>
                 </ul>
             </div>
+            <!-- DEBUG: Ending left sidebar -->
         </div>
         <div class="col-12 col-lg-8 main-content-area">
+            <!-- DEBUG: Starting main content area -->
             <div class="container py-4">
+                <!-- DEBUG: Starting container -->
         <?php if ($notification): ?>
             <div class="alert alert-info text-center"><?= $notification ?></div>
         <?php endif; ?>
