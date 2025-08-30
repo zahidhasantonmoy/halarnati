@@ -1,31 +1,76 @@
 <?php
+// Enable error reporting
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// Start output buffering to catch any early output
+ob_start();
 
 /**
  * Admin dashboard.
  * Displays stats and allows managing entries.
  */
+
+// Debug information at the very beginning
+echo "<!-- Admin Dashboard Debug Start -->\n";
+echo "<!-- PHP Version: " . phpversion() . " -->\n";
+echo "<!-- Current working directory: " . getcwd() . " -->\n";
+
+// Check session status
+echo "<!-- Session status: " . session_status() . " -->\n";
+echo "<!-- Session ID: " . session_id() . " -->\n";
+
 // Include your database connection, which now initializes $db
+echo "<!-- Including config.php -->\n";
 include_once '../config.php';
 
 // Check if $db is properly initialized
 if (!isset($db) || !is_object($db)) {
+    echo "<!-- Database connection failed -->\n";
     die("Database connection failed. Please check your configuration.");
+} else {
+    echo "<!-- Database connection successful -->\n";
 }
 
 // Debug information
 echo "<!-- Debug: Session data - ";
-print_r($_SESSION);
-echo " -->
-";
+if (isset($_SESSION)) {
+    print_r($_SESSION);
+} else {
+    echo "No session data";
+}
+echo " -->\n";
 
-// Redirect if not logged in or not an admin
-if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
-    header("Location: ../login.php"); // Redirect to main login page
+// Check if user is logged in and is admin
+echo "<!-- Checking user authentication -->\n";
+if (!isset($_SESSION['user_id'])) {
+    echo "<!-- User not logged in -->\n";
+    // Don't redirect in debug mode, just show a message
+    echo "<div style='background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; margin: 10px; border-radius: 5px;'>";
+    echo "<h3>Access Denied</h3>";
+    echo "<p>You must be logged in as an administrator to access this page.</p>";
+    echo "<p><a href='../login.php'>Click here to login</a></p>";
+    echo "</div>";
     exit;
 }
+
+if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+    echo "<!-- User is not an admin -->\n";
+    // Don't redirect in debug mode, just show a message
+    echo "<div style='background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; margin: 10px; border-radius: 5px;'>";
+    echo "<h3>Access Denied</h3>";
+    echo "<p>You must be an administrator to access this page.</p>";
+    echo "<p><a href='../index.php'>Go to homepage</a></p>";
+    echo "</div>";
+    exit;
+}
+
+echo "<!-- User is authenticated as admin -->\n";
+echo "<!-- Admin Dashboard Debug End -->\n";
+
+// Flush output buffer
+ob_end_flush();
 
 // Notifications
 $notification = "";
