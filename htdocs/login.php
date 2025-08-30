@@ -6,12 +6,29 @@ include 'config.php'; // Include your database connection
 
 $notification = "";
 
+// Verify CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Verify CSRF token
+    if (!CSRF::verifyRequest()) {
+        echo "Invalid request. Please try again.";
+        exit;
+    }
+    
+    // Rate limiting
+    $identifier = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    if (!RateLimiter::isAllowed('login', $identifier)) {
+        $timeLeft = RateLimiter::getTimeUntilReset('login', $identifier);
+        echo "Too many login attempts. Please try again in " . ceil($timeLeft / 60) . " minutes.";
+        exit;
+    }
+    
     $username = htmlspecialchars($_POST['username']);
     $password = $_POST['password'];
+    $rememberMe = isset($_POST['remember_me']) ? true : false;
 
     // Basic validation
     if (empty($username) || empty($password)) {
+        RateLimiter::logAttempt('login', $identifier);
         echo "Username and password are required.";
         log_activity(null, 'User Login Failed', 'Missing credentials for username: ' . $username); // Log failed attempt
         exit;
@@ -26,18 +43,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['is_admin'] = $user['is_admin'];
+                
+                // Handle "Remember Me"
+                if ($rememberMe) {
+                    $token = bin2hex(random_bytes(32));
+                    $expiry = time() + (30 * 24 * 60 * 60); // 30 days
+                    setcookie('remember_token', $token, $expiry, '/', '', true, true);
+                    // Store token in database (you would need to implement this)
+                    // $db->update("UPDATE users SET remember_token = ? WHERE id = ?", [$token, $user['id']], "si");
+                }
 
+                // Reset rate limit on successful login
+                RateLimiter::reset('login', $identifier);
+                
                 log_activity($user['id'], 'User Login', 'Successful login for username: ' . $user['username']); // Log successful login
 
                 // Return success message for AJAX
                 echo "success";
                 exit;
             } else {
+                RateLimiter::logAttempt('login', $identifier);
                 echo "Invalid username or password.";
                 log_activity(null, 'User Login Failed', 'Invalid password for username: ' . $username); // Log failed attempt
                 exit;
             }
         } else {
+            RateLimiter::logAttempt('login', $identifier);
             echo "Invalid username or password.";
             log_activity(null, 'User Login Failed', 'Invalid username: ' . $username); // Log failed attempt
             exit;
@@ -54,6 +85,9 @@ if (isset($_SESSION['user_id'])) {
     }
     exit;
 }
+
+// Generate CSRF token for the form
+$csrfToken = CSRF::generateToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">

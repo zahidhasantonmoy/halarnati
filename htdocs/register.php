@@ -6,7 +6,22 @@ include 'config.php'; // Include your database connection
 
 $notification = "";
 
+// Verify CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Verify CSRF token
+    if (!CSRF::verifyRequest()) {
+        echo "Invalid request. Please try again.";
+        exit;
+    }
+    
+    // Rate limiting
+    $identifier = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    if (!RateLimiter::isAllowed('registration', $identifier)) {
+        $timeLeft = RateLimiter::getTimeUntilReset('registration', $identifier);
+        echo "Too many registration attempts. Please try again in " . ceil($timeLeft / 60) . " minutes.";
+        exit;
+    }
+    
     $username = htmlspecialchars($_POST['username']);
     $email = htmlspecialchars($_POST['email']);
     $password = $_POST['password'];
@@ -14,22 +29,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Basic validation
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+        RateLimiter::logAttempt('registration', $identifier);
         echo "All fields are required.";
         exit;
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        RateLimiter::logAttempt('registration', $identifier);
         echo "Invalid email format.";
         exit;
     } elseif ($password !== $confirm_password) {
+        RateLimiter::logAttempt('registration', $identifier);
         echo "Passwords do not match.";
         exit;
-    } elseif (strlen($password) < 6) {
-        echo "Password must be at least 6 characters long.";
+    } elseif (strlen($password) < 8) {
+        RateLimiter::logAttempt('registration', $identifier);
+        echo "Password must be at least 8 characters long.";
+        exit;
+    } elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/', $password)) {
+        RateLimiter::logAttempt('registration', $identifier);
+        echo "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
         exit;
     } else {
         // Check if username or email already exists
         $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
 
         if ($existing_user) {
+            RateLimiter::logAttempt('registration', $identifier);
             echo "Username or Email already exists.";
             exit;
         } else {
@@ -42,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if (in_array($file_extension, $allowed_extensions)) {
                     $avatar_dir = 'uploads/avatars/';
                     if (!is_dir($avatar_dir)) {
-                        mkdir($avatar_dir, 0777, true);
+                        mkdir($avatar_dir, 0755, true);
                     }
                     $avatar_filename = uniqid('avatar_', true) . '.' . $file_extension;
                     $avatar_path = $avatar_dir . $avatar_filename;
@@ -65,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin, avatar) VALUES (?, ?, ?, 0, ?)", [$username, $email, $hashed_password, $avatar_path], "ssss");
 
             if ($insert_id) {
+                // Reset rate limit on successful registration
+                RateLimiter::reset('registration', $identifier);
                 echo "success";
                 exit;
             } else {
@@ -74,6 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
+
+// Generate CSRF token for the form
+$csrfToken = CSRF::generateToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">

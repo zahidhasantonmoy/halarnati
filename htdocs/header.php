@@ -18,8 +18,7 @@ if (isset($_SESSION['user_id'])) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/dark_style.css">
+    <link rel="stylesheet" href="assets/css/<?= ThemeManager::getThemeCSS() ?>">
     <!-- Prism.js for code highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <style>
@@ -73,6 +72,9 @@ if (isset($_SESSION['user_id'])) {
                             <a class="nav-link" href="user_panel.php"><i class="fas fa-user-circle"></i> User Panel</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#" id="themeToggle"><i class="fas fa-moon"></i> Toggle Theme</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         </li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
@@ -103,6 +105,7 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 <div class="modal-body">
                     <form id="loginForm">
+                        <input type="hidden" name="csrf_token" value="<?= CSRF::generateToken() ?>">
                         <div class="mb-3">
                             <label for="modalUsername" class="form-label">Username</label>
                             <input type="text" class="form-control" id="modalUsername" name="username" required>
@@ -110,6 +113,10 @@ if (isset($_SESSION['user_id'])) {
                         <div class="mb-3">
                             <label for="modalPassword" class="form-label">Password</label>
                             <input type="password" class="form-control" id="modalPassword" name="password" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
+                            <label class="form-check-label" for="rememberMe">Remember me</label>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Login</button>
@@ -133,6 +140,7 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 <div class="modal-body">
                     <form id="registerForm">
+                        <input type="hidden" name="csrf_token" value="<?= CSRF::generateToken() ?>">
                         <div class="mb-3">
                             <label for="modalRegUsername" class="form-label">Username</label>
                             <input type="text" class="form-control" id="modalRegUsername" name="username" required>
@@ -144,10 +152,15 @@ if (isset($_SESSION['user_id'])) {
                         <div class="mb-3">
                             <label for="modalRegPassword" class="form-label">Password</label>
                             <input type="password" class="form-control" id="modalRegPassword" name="password" required>
+                            <div class="form-text">Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character.</div>
                         </div>
                         <div class="mb-3">
                             <label for="modalRegConfirmPassword" class="form-label">Confirm Password</label>
                             <input type="password" class="form-control" id="modalRegConfirmPassword" name="confirm_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="avatar" class="form-label">Avatar (Optional)</label>
+                            <input type="file" id="avatar" name="avatar" class="form-control">
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-success">Register</button>
@@ -163,17 +176,100 @@ if (isset($_SESSION['user_id'])) {
 
     <!-- JavaScript for modal forms -->
     <script>
+        // Password strength meter
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let feedback = [];
+            
+            if (password.length >= 8) strength += 1;
+            else feedback.push("Use at least 8 characters");
+            
+            if (/[a-z]/.test(password)) strength += 1;
+            else feedback.push("Include lowercase letters");
+            
+            if (/[A-Z]/.test(password)) strength += 1;
+            else feedback.push("Include uppercase letters");
+            
+            if (/\d/.test(password)) strength += 1;
+            else feedback.push("Include numbers");
+            
+            if (/[@$!%*?&]/.test(password)) strength += 1;
+            else feedback.push("Include special characters (@$!%*?&)");
+            
+            return { strength, feedback };
+        }
+        
+        // Update password strength meter
+        document.getElementById('modalRegPassword').addEventListener('input', function() {
+            const password = this.value;
+            const result = checkPasswordStrength(password);
+            const strengthBar = document.getElementById('password-strength');
+            
+            if (!strengthBar) {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.id = 'password-strength';
+                feedbackDiv.className = 'mt-2';
+                this.parentNode.insertBefore(feedbackDiv, this.nextSibling);
+            }
+            
+            const bar = document.getElementById('password-strength');
+            let strengthText = '';
+            let barClass = '';
+            
+            switch (result.strength) {
+                case 0:
+                case 1:
+                    strengthText = 'Very Weak';
+                    barClass = 'bg-danger';
+                    break;
+                case 2:
+                    strengthText = 'Weak';
+                    barClass = 'bg-warning';
+                    break;
+                case 3:
+                    strengthText = 'Medium';
+                    barClass = 'bg-info';
+                    break;
+                case 4:
+                    strengthText = 'Strong';
+                    barClass = 'bg-primary';
+                    break;
+                case 5:
+                    strengthText = 'Very Strong';
+                    barClass = 'bg-success';
+                    break;
+            }
+            
+            bar.innerHTML = `
+                <div class="progress">
+                    <div class="progress-bar ${barClass}" role="progressbar" style="width: ${(result.strength / 5) * 100}%" aria-valuenow="${result.strength}" aria-valuemin="0" aria-valuemax="5">
+                        ${strengthText}
+                    </div>
+                </div>
+                ${result.feedback.length > 0 ? 
+                    `<div class="mt-2 small text-muted">
+                        <strong>Requirements:</strong> ${result.feedback.join(', ')}
+                    </div>` : 
+                    '<div class="mt-2 small text-success">Password meets all requirements!</div>'
+                }
+            `;
+        });
+        
         // Handle login form submission
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const username = document.getElementById('modalUsername').value;
             const password = document.getElementById('modalPassword').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const csrfToken = '<?= CSRF::generateToken() ?>';
             
             // Create FormData object
             const formData = new FormData();
             formData.append('username', username);
             formData.append('password', password);
+            formData.append('remember_me', rememberMe);
+            formData.append('csrf_token', csrfToken);
             
             // Send AJAX request
             fetch('/login.php', {
@@ -192,7 +288,7 @@ if (isset($_SESSION['user_id'])) {
                     location.reload();
                 } else {
                     // Show error message
-                    alert('Login failed. Please check your credentials.');
+                    alert('Login failed. ' + data);
                 }
             })
             .catch(error => {
@@ -209,6 +305,8 @@ if (isset($_SESSION['user_id'])) {
             const email = document.getElementById('modalRegEmail').value;
             const password = document.getElementById('modalRegPassword').value;
             const confirmPassword = document.getElementById('modalRegConfirmPassword').value;
+            const avatarFile = document.getElementById('avatar').files[0];
+            const csrfToken = '<?= CSRF::generateToken() ?>';
             
             // Check if passwords match
             if (password !== confirmPassword) {
@@ -222,6 +320,10 @@ if (isset($_SESSION['user_id'])) {
             formData.append('email', email);
             formData.append('password', password);
             formData.append('confirm_password', confirmPassword);
+            formData.append('csrf_token', csrfToken);
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
             
             // Send AJAX request
             fetch('/register.php', {
@@ -272,6 +374,27 @@ if (isset($_SESSION['user_id'])) {
                     }
                 }
             }
+        });
+        
+        // Handle theme toggle
+        document.getElementById('themeToggle').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            fetch('/toggle_theme.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reload the page to apply new theme
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to toggle theme.');
+            });
         });
     </script>
 </body>

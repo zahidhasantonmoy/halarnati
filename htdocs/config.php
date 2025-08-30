@@ -11,6 +11,16 @@ error_reporting(E_ALL); // Keep error reporting enabled for logging
 // Include custom error handler
 require_once __DIR__ . '/includes/ErrorHandler.php';
 
+// Include security classes
+require_once __DIR__ . '/includes/security/CSRF.php';
+require_once __DIR__ . '/includes/security/RateLimiter.php';
+
+// Include cache class
+require_once __DIR__ . '/includes/cache/SimpleCache.php';
+
+// Include theme manager
+require_once __DIR__ . '/includes/ThemeManager.php';
+
 // Database connection parameters
 $host = 'sql203.infinityfree.com';
 $user = 'if0_37868453';
