@@ -15,6 +15,12 @@ if (!isset($db) || !is_object($db)) {
     die("Database connection failed. Please check your configuration.");
 }
 
+// Debug information
+echo "<!-- Debug: Session data - ";
+print_r($_SESSION);
+echo " -->
+";
+
 // Redirect if not logged in or not an admin
 if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {
     header("Location: ../login.php"); // Redirect to main login page

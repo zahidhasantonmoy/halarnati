@@ -12,8 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Basic validation
     if (empty($username) || empty($password)) {
-        $notification = "Username and password are required.";
+        echo "Username and password are required.";
         log_activity(null, 'User Login Failed', 'Missing credentials for username: ' . $username); // Log failed attempt
+        exit;
     } else {
         // Fetch user from database
         $user = $db->fetch("SELECT id, username, password, is_admin FROM users WHERE username = ?", [$username], "s");
@@ -28,20 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 log_activity($user['id'], 'User Login', 'Successful login for username: ' . $user['username']); // Log successful login
 
-                // Redirect to dashboard or home page
-                if ($user['is_admin']) {
-                    header("Location: guru/admin_dashboard.php"); // Redirect to admin panel if admin
-                } else {
-                    header("Location: index.php"); // Redirect to home page for regular users
-                }
+                // Return success message for AJAX
+                echo "success";
                 exit;
             } else {
-                $notification = "Invalid username or password.";
+                echo "Invalid username or password.";
                 log_activity(null, 'User Login Failed', 'Invalid password for username: ' . $username); // Log failed attempt
+                exit;
             }
         } else {
-            $notification = "Invalid username or password.";
+            echo "Invalid username or password.";
             log_activity(null, 'User Login Failed', 'Invalid username: ' . $username); // Log failed attempt
+            exit;
         }
     }
 }

@@ -22,6 +22,29 @@ if (isset($_SESSION['user_id'])) {
     <link rel="stylesheet" href="assets/css/dark_style.css">
     <!-- Prism.js for code highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        /* Modal animation styles */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            border-radius: 15px 15px 0 0;
+        }
+        .fade-scale {
+            transform: scale(0.7);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+        .fade-scale.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .login-btn, .register-btn {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -59,13 +82,167 @@ if (isset($_SESSION['user_id'])) {
                         <?php endif; ?>
                     <?php else: ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="login.php"><i class="fas fa-sign-in-alt"></i> Login</a>
+                            <a class="nav-link login-btn" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="fas fa-sign-in-alt"></i> Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="register.php"><i class="fas fa-user-plus"></i> Register</a>
+                            <a class="nav-link register-btn" data-bs-toggle="modal" data-bs-target="#registerModal"><i class="fas fa-user-plus"></i> Register</a>
                         </li>
                     <?php endif; ?>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content fade-scale">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="loginModalLabel">Login to Your Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="modalUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="modalUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="modalPassword" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p>Don't have an account? <a href="#" class="register-btn" data-bs-toggle="modal" data-bs-target="#registerModal">Register here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content fade-scale">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="registerModalLabel">Create New Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="modalRegUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="modalRegUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalRegEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="modalRegEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalRegPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="modalRegPassword" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalRegConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="modalRegConfirmPassword" name="confirm_password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Register</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="#" class="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for modal forms -->
+    <script>
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('modalUsername').value;
+            const password = document.getElementById('modalPassword').value;
+            
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            // Send AJAX request
+            fetch('login.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Check if login was successful
+                if (data.includes('success')) {
+                    // Close modal and reload page
+                    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                    location.reload();
+                } else {
+                    // Show error message
+                    alert('Login failed. Please check your credentials.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during login.');
+            });
+        });
+        
+        // Handle register form submission
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('modalRegUsername').value;
+            const email = document.getElementById('modalRegEmail').value;
+            const password = document.getElementById('modalRegPassword').value;
+            const confirmPassword = document.getElementById('modalRegConfirmPassword').value;
+            
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                alert('Passwords do not match.');
+                return;
+            }
+            
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('email', email);
+            formData.append('password', password);
+            
+            // Send AJAX request
+            fetch('register.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Check if registration was successful
+                if (data.includes('success')) {
+                    // Close modal and show success message
+                    bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                    alert('Registration successful! You can now login.');
+                    // Open login modal
+                    new bootstrap.Modal(document.getElementById('loginModal')).show();
+                } else {
+                    // Show error message
+                    alert('Registration failed. ' + data);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during registration.');
+            });
+        });
+    </script>
+</body>
+</html>

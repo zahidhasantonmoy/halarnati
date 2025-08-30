@@ -6,6 +6,53 @@
 include 'config.php';
 include 'includes/ImageHelper.php';
 
+// Database connection test - only show for admin users
+if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']) {
+    echo "<!-- Database Connection Test -->
+";
+    echo "<div style='background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; margin: 10px; border-radius: 5px;'>
+";
+    echo "<h3>Database Connection Test (Admin Only)</h3>
+";
+    
+    if (isset($db) && is_object($db)) {
+        echo "<p>✓ Database object exists</p>
+";
+        
+        try {
+            $conn = $db->getConnection();
+            if ($conn) {
+                echo "<p>✓ Database connection successful</p>
+";
+                
+                // Try a simple query
+                $result = $db->fetch("SELECT 1 as test");
+                if ($result) {
+                    echo "<p>✓ Database query successful: " . $result['test'] . "</p>
+";
+                } else {
+                    echo "<p>✗ Database query failed</p>
+";
+                }
+            } else {
+                echo "<p>✗ Failed to get database connection</p>
+";
+            }
+        } catch (Exception $e) {
+            echo "<p>✗ Exception occurred: " . $e->getMessage() . "</p>
+";
+        }
+    } else {
+        echo "<p>✗ Database object does not exist</p>
+";
+    }
+    
+    echo "</div>
+";
+    echo "<!-- End Database Connection Test -->
+";
+}
+
 $notification = "";
 
 // Handle form submission for creating a new entry

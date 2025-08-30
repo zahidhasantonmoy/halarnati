@@ -14,19 +14,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Basic validation
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
-        $notification = "All fields are required.";
+        echo "All fields are required.";
+        exit;
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $notification = "Invalid email format.";
+        echo "Invalid email format.";
+        exit;
     } elseif ($password !== $confirm_password) {
-        $notification = "Passwords do not match.";
+        echo "Passwords do not match.";
+        exit;
     } elseif (strlen($password) < 6) {
-        $notification = "Password must be at least 6 characters long.";
+        echo "Password must be at least 6 characters long.";
+        exit;
     } else {
         // Check if username or email already exists
         $existing_user = $db->fetch("SELECT id FROM users WHERE username = ? OR email = ?", [$username, $email], "ss");
 
         if ($existing_user) {
-            $notification = "Username or Email already exists.";
+            echo "Username or Email already exists.";
+            exit;
         } else {
             // Handle avatar upload
             $avatar_path = null;
@@ -43,11 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $avatar_path = $avatar_dir . $avatar_filename;
 
                     if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
-                        $notification = "Error uploading avatar.";
+                        echo "Error uploading avatar.";
                         $avatar_path = null;
+                        exit;
                     }
                 } else {
-                    $notification = "Invalid file type for avatar. Only JPG, PNG, and GIF are allowed.";
+                    echo "Invalid file type for avatar. Only JPG, PNG, and GIF are allowed.";
+                    exit;
                 }
             }
 
@@ -58,9 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $insert_id = $db->insert("INSERT INTO users (username, email, password, is_admin, avatar) VALUES (?, ?, ?, 0, ?)", [$username, $email, $hashed_password, $avatar_path], "ssss");
 
             if ($insert_id) {
-                $notification = "Registration successful! You can now log in.";
+                echo "success";
+                exit;
             } else {
-                $notification = "Error: " . $db->getConnection()->error;
+                echo "Error: " . $db->getConnection()->error;
+                exit;
             }
         }
     }
