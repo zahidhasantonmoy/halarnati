@@ -288,13 +288,13 @@ include '../header.php';
             <div class="p-3">
                 <h5>Admin Panel</h5>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item bg-transparent border-0"><a href="admin_dashboard.php" class="text-decoration-none text-white"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="manage_users.php" class="text-decoration-none text-white"><i class="fas fa-users me-2"></i> Manage Users</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="manage_entries.php" class="text-decoration-none text-white"><i class="fas fa-list me-2"></i> Manage Entries</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="view_activity_logs.php" class="text-decoration-none text-white"><i class="fas fa-history me-2"></i> Activity Logs</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="error_log_viewer.php" class="text-decoration-none text-white"><i class="fas fa-bug me-2"></i> Error Log</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="settings.php" class="text-decoration-none text-white"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="../logout.php" class="text-decoration-none text-white"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/admin_dashboard.php" class="text-decoration-none text-white"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/manage_users.php" class="text-decoration-none text-white"><i class="fas fa-users me-2"></i> Manage Users</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/manage_entries.php" class="text-decoration-none text-white"><i class="fas fa-list me-2"></i> Manage Entries</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/view_activity_logs.php" class="text-decoration-none text-white"><i class="fas fa-history me-2"></i> Activity Logs</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/error_log_viewer.php" class="text-decoration-none text-white"><i class="fas fa-bug me-2"></i> Error Log</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/guru/settings.php" class="text-decoration-none text-white"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/logout.php" class="text-decoration-none text-white"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -512,7 +512,7 @@ include '../header.php';
                 <h5>Quick Links</h5>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item bg-transparent border-0"><a href="/index.php" class="text-decoration-none text-white">Go to Home</a></li>
-                    <li class="list-group-item bg-transparent border-0"><a href="../register.php" class="text-decoration-none text-white">Register New User</a></li>
+                    <li class="list-group-item bg-transparent border-0"><a href="/register.php" class="text-decoration-none text-white">Register New User</a></li>
                 </ul>
             </div>
         </div>
@@ -522,7 +522,7 @@ include '../header.php';
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="POST" enctype="multipart/form-data">
+        <form id="editEntryForm" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="entry_id" id="edit-id">
             <div class="modal-content">
                 <div class="modal-header">
@@ -573,6 +573,7 @@ include '../header.php';
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" name="edit_entry_modal" class="btn btn-success">Save Changes</button>
                 </div>
             </div>
@@ -598,6 +599,32 @@ include '../header.php';
             document.getElementById('edit-language').value = language;
             document.getElementById('edit-slug').value = slug;
             document.getElementById('edit-visible').value = visible;
+        });
+    });
+
+    // Handle edit form submission with AJAX
+    document.getElementById('editEntryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('edit_entry_modal', '1');
+        
+        fetch('admin_dashboard.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(data => {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            // Show success message
+            alert('Entry updated successfully!');
+            // Reload the page to show updated data
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the entry.');
         });
     });
 </script>

@@ -176,7 +176,7 @@ if (isset($_SESSION['user_id'])) {
             formData.append('password', password);
             
             // Send AJAX request
-            fetch('login.php', {
+            fetch('/login.php', {
                 method: 'POST',
                 body: formData
             })
@@ -185,7 +185,10 @@ if (isset($_SESSION['user_id'])) {
                 // Check if login was successful
                 if (data.includes('success')) {
                     // Close modal and reload page
-                    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
                     location.reload();
                 } else {
                     // Show error message
@@ -218,9 +221,10 @@ if (isset($_SESSION['user_id'])) {
             formData.append('username', username);
             formData.append('email', email);
             formData.append('password', password);
+            formData.append('confirm_password', confirmPassword);
             
             // Send AJAX request
-            fetch('register.php', {
+            fetch('/register.php', {
                 method: 'POST',
                 body: formData
             })
@@ -229,10 +233,15 @@ if (isset($_SESSION['user_id'])) {
                 // Check if registration was successful
                 if (data.includes('success')) {
                     // Close modal and show success message
-                    bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
                     alert('Registration successful! You can now login.');
                     // Open login modal
-                    new bootstrap.Modal(document.getElementById('loginModal')).show();
+                    setTimeout(() => {
+                        new bootstrap.Modal(document.getElementById('loginModal')).show();
+                    }, 500);
                 } else {
                     // Show error message
                     alert('Registration failed. ' + data);
@@ -242,6 +251,27 @@ if (isset($_SESSION['user_id'])) {
                 console.error('Error:', error);
                 alert('An error occurred during registration.');
             });
+        });
+        
+        // Handle navigation between modals
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('login-btn')) {
+                const registerModal = document.getElementById('registerModal');
+                if (registerModal) {
+                    const registerModalInstance = bootstrap.Modal.getInstance(registerModal);
+                    if (registerModalInstance) {
+                        registerModalInstance.hide();
+                    }
+                }
+            } else if (e.target.classList.contains('register-btn')) {
+                const loginModal = document.getElementById('loginModal');
+                if (loginModal) {
+                    const loginModalInstance = bootstrap.Modal.getInstance(loginModal);
+                    if (loginModalInstance) {
+                        loginModalInstance.hide();
+                    }
+                }
+            }
         });
     </script>
 </body>
