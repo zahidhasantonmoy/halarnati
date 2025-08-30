@@ -3,7 +3,13 @@
  * Admin page for managing users.
  * Allows adding, editing, and deleting users.
  */
-include '../config.php';
+// Include your database connection, which now initializes $db
+include_once '../config.php';
+
+// Check if $db is properly initialized
+if (!isset($db) || !is_object($db)) {
+    die("Database connection failed. Please check your configuration.");
+}
 
 // Redirect if not logged in or not an admin
 if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin'])) {

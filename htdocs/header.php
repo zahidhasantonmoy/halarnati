@@ -47,6 +47,9 @@ if (isset($_SESSION['user_id'])) {
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="user_panel.php"><i class="fas fa-user-circle"></i> User Panel</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         </li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>

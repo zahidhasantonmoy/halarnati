@@ -24,6 +24,11 @@ if (!$user || !is_array($user)) {
     exit;
 }
 
+// Ensure avatar is handled correctly
+if (isset($user['avatar']) && !is_string($user['avatar'])) {
+    $user['avatar'] = '';
+}
+
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $new_email = htmlspecialchars($_POST['email']);
@@ -84,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
 
                 if (move_uploaded_file($_FILES['avatar']['tmp_name'], $avatar_path)) {
                     // Delete old avatar if it exists
-                    if (isset($user['avatar']) && is_string($user['avatar']) && file_exists($user['avatar'])) {
+                    if (isset($user['avatar']) && is_string($user['avatar']) && !empty($user['avatar']) && file_exists($user['avatar'])) {
                         unlink($user['avatar']);
                     }
                     $update_sql .= ", avatar = ?";
