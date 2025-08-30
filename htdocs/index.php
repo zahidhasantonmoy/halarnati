@@ -53,6 +53,7 @@ if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']) {
 ";
 }
 
+
 $notification = "";
 
 // Handle form submission for creating a new entry
@@ -139,6 +140,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_entry'])) {
     $notification = "Entry successfully added!";
     log_activity($user_id, 'Entry Created', 'New entry titled: ' . $title . ' (ID: ' . $insert_id . ')');
 }
+
+// Handle search functionality
+$searchResults = [];
+if (isset($_GET['search_query'])) {
+    $searchQuery = htmlspecialchars($_GET['search_query']);
+    $likeQuery = '%' . $searchQuery . '%';
+    $searchResults = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id WHERE e.title LIKE ? OR e.text LIKE ? ORDER BY e.created_at DESC", [$likeQuery, $likeQuery], "ss");
+}
+
+// Pagination functionality
+$limit = 10; // Number of entries per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+// Fetch the entries for the current page
+$entries = $db->fetchAll("SELECT e.*, c.name as category_name, c.slug as category_slug FROM entries e LEFT JOIN categories c ON e.category_id = c.id ORDER BY e.created_at DESC LIMIT ? OFFSET ?", [$limit, $offset], "ii");
+
+// Get total number of entries
+$totalResult = $db->fetch("SELECT COUNT(*) AS total FROM entries");
+$totalEntries = $totalResult['total'];
+$totalPages = ceil($totalEntries / $limit);
+
+// Get total view count for footer
+$totalViewsResult = $db->fetch("SELECT SUM(view_count) AS total_views FROM entries");
+$totalViews = $totalViewsResult['total_views'] ?? 0;
+
+// Fetch all categories
+$categories = $db->fetchAll("SELECT id, name, slug FROM categories ORDER BY name ASC");
+
+include 'header.php';
+?>
 
 // Handle search functionality
 $searchResults = [];
