@@ -73,8 +73,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // If user is already logged in, redirect them
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['is_admin']) {
+        // For AJAX requests, we don't redirect, just return success
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            echo "success";
+            exit;
+        }
         header("Location: guru/admin_dashboard.php");
     } else {
+        // For AJAX requests, we don't redirect, just return success
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            echo "success";
+            exit;
+        }
         header("Location: index.php");
     }
     exit;
@@ -83,6 +93,53 @@ if (isset($_SESSION['user_id'])) {
 // Generate CSRF token for the form
 $csrfToken = ''; // CSRF::generateToken();
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Halarnati</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="row g-0 justify-content-center">
+            <div class="col-12 col-md-6 col-lg-4 main-content-area">
+                <div class="container py-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            Login
+                        </div>
+                        <div class="card-body">
+                            <?php if ($notification): ?>
+                                <div class="alert alert-info text-center"><?= $notification ?></div>
+                            <?php endif; ?>
+                            <form action="login.php" method="post">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input type="text" id="username" name="username" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" id="password" name="password" class="form-control" required>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                                    <label class="form-check-label" for="remember_me">Remember me</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Login</button>
+                            </form>
+                            <p class="mt-3 text-center">Don't have an account? <a href="register.php">Register here</a> | <a href="index.php">Go to Homepage</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>

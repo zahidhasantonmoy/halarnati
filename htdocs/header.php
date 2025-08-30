@@ -43,6 +43,14 @@ if (isset($_SESSION['user_id'])) {
         .login-btn, .register-btn {
             cursor: pointer;
         }
+        
+        /* Fix modal backdrop */
+        .modal-backdrop {
+            z-index: 1050 !important;
+        }
+        .modal {
+            z-index: 1055 !important;
+        }
     </style>
 </head>
 <body>
@@ -264,6 +272,12 @@ if (isset($_SESSION['user_id'])) {
             const password = document.getElementById('modalPassword').value;
             const rememberMe = document.getElementById('rememberMe').checked;
             
+            // Show loading indicator
+            const submitButton = document.querySelector('#loginForm button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+            submitButton.disabled = true;
+            
             // Create FormData object
             const formData = new FormData();
             formData.append('username', username);
@@ -275,8 +289,18 @@ if (isset($_SESSION['user_id'])) {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.text())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.text();
+            })
             .then(data => {
+                console.log('Response data:', data);
+                
+                // Restore button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                
                 // Check if login was successful
                 if (data.includes('success')) {
                     // Close modal and reload page
@@ -284,13 +308,20 @@ if (isset($_SESSION['user_id'])) {
                     if (modal) {
                         modal.hide();
                     }
-                    location.reload();
+                    // Show success message
+                    alert('Login successful! Redirecting...');
+                    // Redirect to homepage or admin panel
+                    window.location.href = '/';
                 } else {
                     // Show error message
-                    alert('Login failed. ' + data);
+                    alert('Login failed: ' + data);
                 }
             })
             .catch(error => {
+                // Restore button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 alert('An error occurred during login.');
             });
@@ -312,6 +343,12 @@ if (isset($_SESSION['user_id'])) {
                 return;
             }
             
+            // Show loading indicator
+            const submitButton = document.querySelector('#registerForm button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Registering...';
+            submitButton.disabled = true;
+            
             // Create FormData object
             const formData = new FormData();
             formData.append('username', username);
@@ -329,6 +366,10 @@ if (isset($_SESSION['user_id'])) {
             })
             .then(response => response.text())
             .then(data => {
+                // Restore button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                
                 // Check if registration was successful
                 if (data.includes('success')) {
                     // Close modal and show success message
@@ -343,10 +384,14 @@ if (isset($_SESSION['user_id'])) {
                     }, 500);
                 } else {
                     // Show error message
-                    alert('Registration failed. ' + data);
+                    alert('Registration failed: ' + data);
                 }
             })
             .catch(error => {
+                // Restore button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                
                 console.error('Error:', error);
                 alert('An error occurred during registration.');
             });
@@ -394,5 +439,6 @@ if (isset($_SESSION['user_id'])) {
             });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
