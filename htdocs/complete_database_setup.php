@@ -21,6 +21,10 @@ include 'create_follows_table.php';
 echo "\n5. Creating comments tables...\n";
 include 'create_comments_tables.php';
 
+echo "\n6. Creating entry views table...\n";
+include 'create_entry_views_table.php';
+
 echo "\n\nDatabase setup completed successfully!\n";
 echo "You may need to run these scripts on your production database as well.\n";
 ?>
+

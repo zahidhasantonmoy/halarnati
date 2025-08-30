@@ -6,6 +6,10 @@
 include 'config.php'; // config.php now initializes $db
 include 'includes/Parsedown.php';
 
+// Include recommendation system
+require_once 'includes/ContentRecommendation.php';
+$recommendation = new ContentRecommendation($db);
+
 // Get entry ID or slug from URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $slug = isset($_GET['slug']) ? htmlspecialchars($_GET['slug']) : null;
@@ -23,6 +27,11 @@ if (!$entry) {
 
 // Increment view count
 $db->update("UPDATE entries SET view_count = view_count + 1 WHERE id = ?", [$entry['id']], "i");
+
+// Record view for recommendations if user is logged in
+if (isset($_SESSION['user_id'])) {
+    $recommendation->recordView($_SESSION['user_id'], $entry['id']);
+}
 
 // Handle unlock request
 $isUnlocked = false;
@@ -163,6 +172,69 @@ include 'header.php';
                                     </li>
                                 <?php endforeach; ?>
                             </ul>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Recommendations Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-lightbulb"></i> Recommended Entries
+                    </div>
+                    <div class="card-body">
+                        <?php
+                        // Get similar entries
+                        $similarEntries = $recommendation->getSimilarEntries($entry['id'], 3);
+                        
+                        // If not enough similar entries, get user recommendations
+                        if (count($similarEntries) < 3 && isset($_SESSION['user_id'])) {
+                            $userRecommendations = $recommendation->getRecommendationsForUser($_SESSION['user_id'], 3 - count($similarEntries));
+                            $similarEntries = array_merge($similarEntries, $userRecommendations);
+                        }
+                        
+                        // If still not enough, get popular entries
+                        if (count($similarEntries) < 3) {
+                            $popularEntries = $recommendation->getPopularEntries(3 - count($similarEntries));
+                            $similarEntries = array_merge($similarEntries, $popularEntries);
+                        }
+                        
+                        // Limit to 3 entries
+                        $similarEntries = array_slice($similarEntries, 0, 3);
+                        
+                        if (empty($similarEntries)):
+                        ?>
+                            <p>No recommendations available at this time.</p>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php foreach ($similarEntries as $recEntry): ?>
+                                    <div class="col-md-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h6 class="card-title">
+                                                    <?php
+                                                    if ($recEntry['type'] === 'code') {
+                                                        echo '<i class="fas fa-code"></i> ';
+                                                    } elseif ($recEntry['type'] === 'file') {
+                                                        echo '<i class="fas fa-file"></i> ';
+                                                    } else {
+                                                        echo '<i class="fas fa-align-left"></i> ';
+                                                    }
+                                                    echo htmlspecialchars(substr($recEntry['title'], 0, 30));
+                                                    if (strlen($recEntry['title']) > 30) echo '...';
+                                                    ?>
+                                                </h6>
+                                                <p class="card-text small text-muted">
+                                                    <?= htmlspecialchars(substr($recEntry['text'], 0, 80)) ?>...
+                                                </p>
+                                                <a href="entry.php?<?= $recEntry['slug'] ? 'slug=' . htmlspecialchars($recEntry['slug']) : 'id=' . $recEntry['id'] ?>" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    View Entry
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>

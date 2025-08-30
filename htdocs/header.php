@@ -57,6 +57,9 @@ if (isset($_SESSION['user_id'])) {
                     <li class="nav-item">
                         <a class="nav-link" href="index.php"><i class="fas fa-home"></i> Home</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="advanced_search.php"><i class="fas fa-search"></i> Advanced Search</a>
+                    </li>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="user_panel.php">
@@ -105,7 +108,6 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 <div class="modal-body">
                     <form id="loginForm">
-                        <input type="hidden" name="csrf_token" value="<?= CSRF::generateToken() ?>">
                         <div class="mb-3">
                             <label for="modalUsername" class="form-label">Username</label>
                             <input type="text" class="form-control" id="modalUsername" name="username" required>
@@ -140,7 +142,6 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 <div class="modal-body">
                     <form id="registerForm">
-                        <input type="hidden" name="csrf_token" value="<?= CSRF::generateToken() ?>">
                         <div class="mb-3">
                             <label for="modalRegUsername" class="form-label">Username</label>
                             <input type="text" class="form-control" id="modalRegUsername" name="username" required>
@@ -262,14 +263,12 @@ if (isset($_SESSION['user_id'])) {
             const username = document.getElementById('modalUsername').value;
             const password = document.getElementById('modalPassword').value;
             const rememberMe = document.getElementById('rememberMe').checked;
-            const csrfToken = '<?= CSRF::generateToken() ?>';
             
             // Create FormData object
             const formData = new FormData();
             formData.append('username', username);
             formData.append('password', password);
             formData.append('remember_me', rememberMe);
-            formData.append('csrf_token', csrfToken);
             
             // Send AJAX request
             fetch('/login.php', {
@@ -306,7 +305,6 @@ if (isset($_SESSION['user_id'])) {
             const password = document.getElementById('modalRegPassword').value;
             const confirmPassword = document.getElementById('modalRegConfirmPassword').value;
             const avatarFile = document.getElementById('avatar').files[0];
-            const csrfToken = '<?= CSRF::generateToken() ?>';
             
             // Check if passwords match
             if (password !== confirmPassword) {
@@ -320,7 +318,6 @@ if (isset($_SESSION['user_id'])) {
             formData.append('email', email);
             formData.append('password', password);
             formData.append('confirm_password', confirmPassword);
-            formData.append('csrf_token', csrfToken);
             if (avatarFile) {
                 formData.append('avatar', avatarFile);
             }

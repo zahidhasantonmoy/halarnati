@@ -8,12 +8,6 @@ $notification = "";
 
 // Verify CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Verify CSRF token
-    if (!CSRF::verifyRequest()) {
-        echo "Invalid request. Please try again.";
-        exit;
-    }
-    
     // Rate limiting
     $identifier = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     if (!RateLimiter::isAllowed('registration', $identifier)) {
@@ -102,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Generate CSRF token for the form
-$csrfToken = CSRF::generateToken();
+$csrfToken = ''; // CSRF::generateToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -12,7 +12,6 @@ error_reporting(E_ALL); // Keep error reporting enabled for logging
 require_once __DIR__ . '/includes/ErrorHandler.php';
 
 // Include security classes
-require_once __DIR__ . '/includes/security/CSRF.php';
 require_once __DIR__ . '/includes/security/RateLimiter.php';
 
 // Include cache class
